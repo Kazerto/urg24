@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "978563578729",
+    "project_id": "urgence24-1f259",
+    "storage_bucket": "urgence24-1f259.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:978563578729:android:ca8ed54fe3556f0ddc1bf8",
+        "android_client_info": {
+          "package_name": "com.example.urgence24"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVx-IJZW152qM2bIvxvJgpSW7HsZpy_es"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
