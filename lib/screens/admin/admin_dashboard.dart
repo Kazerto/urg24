@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/auth_provider_simple.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/custom_button.dart';
 import 'pharmacy_requests_screen.dart';
 import 'delivery_approvals_screen.dart';
 import 'admin_notifications_screen.dart';
+import 'email_config_screen.dart';
 import '../login_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -21,7 +22,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<AuthProviderSimple>(context);
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
@@ -218,6 +219,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const AdminNotificationsScreen(),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: AppDimensions.paddingMedium),
+
+            _buildActionCard(
+              'Configuration Email',
+              'Configurer SMTP pour envoi d\'emails',
+              Icons.email_outlined,
+              AppColors.warningColor,
+                  () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const EmailConfigScreen(),
                 ),
               ),
             ),

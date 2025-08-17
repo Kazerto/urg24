@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primaryColor = Color(0xFF2E7D32);
-  static const Color secondaryColor = Color(0xFF4CAF50);
-  static const Color accentColor = Color(0xFF81C784);
-  static const Color backgroundColor = Color(0xFFF5F5F5);
+  static const Color primaryColor = Color(0xFF1976D2); // Bleu principal
+  static const Color secondaryColor = Color(0xFF03A9F4); // Bleu ciel
+  static const Color accentColor = Color(0xFF4CAF50); // Vert
+  static const Color backgroundColor = Color(0xFFF8FFFE);
   static const Color textPrimary = Color(0xFF212121);
   static const Color textSecondary = Color(0xFF757575);
   static const Color errorColor = Color(0xFFD32F2F);
-  static const Color successColor = Color(0xFF388E3C);
+  static const Color successColor = Color(0xFF4CAF50); // Vert pour succès
   static const Color warningColor = Color(0xFFF57C00);
+  static const Color lightBlue = Color(0xFF81D4FA); // Bleu ciel plus clair
+  static const Color darkBlue = Color(0xFF0D47A1); // Bleu plus foncé
 }
 
 class AppStrings {

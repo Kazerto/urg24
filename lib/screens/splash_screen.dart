@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/login_screen.dart';
+import '../screens/user_type_login_screen.dart';
 import '../utils/constants.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -37,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen>
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const UserTypeLoginScreen()),
         );
       }
     });
@@ -75,10 +75,14 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.local_pharmacy,
-                  size: 60,
-                  color: AppColors.primaryColor,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: AppDimensions.logoSize,
+                    height: AppDimensions.logoSize,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               const SizedBox(height: AppDimensions.paddingLarge),

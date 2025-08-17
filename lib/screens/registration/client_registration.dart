@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/auth_provider_simple.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import '../../utils/constants.dart';
@@ -43,22 +44,22 @@ class _ClientRegistrationScreenState extends State<ClientRegistrationScreen> {
       });
 
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
 
         final userData = {
           'fullName': _fullNameController.text.trim(),
           'email': _emailController.text.trim(),
           'phoneNumber': _phoneController.text.trim(),
           'userType': UserTypes.client,
-          'isVerified': false,
-          'createdAt': DateTime.now(),
         };
 
-        await authProvider.registerClient(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-          userData,
+        String verificationCode = await authProvider.registerUser(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+          userData: userData,
         );
+        
+        debugPrint('Code de vérification: $verificationCode');
 
         if (mounted) {
           Navigator.of(context).pushReplacement(

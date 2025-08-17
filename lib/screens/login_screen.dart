@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_provider_simple.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../utils/constants.dart';
 import '../utils/validators.dart';
 import 'registration/user_type_selection.dart';
+import 'client/client_dashboard.dart';
+import 'admin/admin_dashboard.dart';
+import 'admin/sync_admin_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -35,15 +38,63 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        await authProvider.signInWithEmailAndPassword(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
+        final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
+        await authProvider.signIn(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
         );
 
-        // Navigation sera gérée par AuthProvider selon le type d'utilisateur
+        // Navigation selon le type d'utilisateur
+        if (mounted) {
+          final userType = authProvider.userType;
+          switch (userType) {
+            case 'client':
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const ClientDashboard()),
+              );
+              break;
+            case 'admin':
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+              );
+              break;
+            case 'pharmacy':
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Interface pharmacie en développement'),
+                  backgroundColor: AppColors.primaryColor,
+                ),
+              );
+              break;
+            case 'delivery_person':
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Interface livreur en développement'),
+                  backgroundColor: AppColors.primaryColor,
+                ),
+              );
+              break;
+            default:
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Type d\'utilisateur non reconnu'),
+                  backgroundColor: AppColors.errorColor,
+                ),
+              );
+          }
+        }
 
       } catch (e) {
+        // Vérifier si l'erreur concerne un profil admin non trouvé
+        if (e.toString().contains('Aucun profil utilisateur trouvé') && 
+            _emailController.text.trim() == 'admin@urgence24.com') {
+          // Rediriger vers l'écran de synchronisation admin
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const SyncAdminScreen()),
+          );
+          return;
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur de connexion: ${e.toString()}'),
@@ -87,13 +138,25 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: AppColors.primaryColor,
-                          borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
-                        ),
-                        child: const Icon(
-                          Icons.local_pharmacy,
-                          size: 40,
                           color: Colors.white,
+                          borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              spreadRadius: 2,
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       const SizedBox(height: AppDimensions.paddingMedium),

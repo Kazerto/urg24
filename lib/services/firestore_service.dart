@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../utils/constants.dart';
 
 class FirestoreService {
@@ -74,7 +75,10 @@ class FirestoreService {
     try {
       DocumentSnapshot doc = await _db.collection('users').doc(uid).get();
       if (doc.exists) {
-        return doc.data() as Map<String, dynamic>;
+        var data = doc.data();
+        if (data != null) {
+          return Map<String, dynamic>.from(data as Map);
+        }
       }
       return null;
     } catch (e) {
@@ -94,7 +98,7 @@ class FirestoreService {
 
       if (userQuery.docs.isNotEmpty) {
         String uid = userQuery.docs.first.id;
-        Map<String, dynamic> userData = userQuery.docs.first.data() as Map<String, dynamic>;
+        Map<String, dynamic> userData = Map<String, dynamic>.from(userQuery.docs.first.data() as Map);
         String userType = userData['userType'];
 
         // Mettre à jour le statut principal
@@ -345,6 +349,63 @@ class FirestoreService {
       await _db.collection('pharmacy_requests').doc(requestId).delete();
     } catch (e) {
       throw 'Erreur lors de la suppression de la demande: $e';
+    }
+  }
+
+  // Créer l'administrateur par défaut
+  Future<void> createDefaultAdmin() async {
+    try {
+      String adminEmail = 'admin@urgence24.com';
+      
+      // UID Firebase Auth connu pour l'admin (obtenu après connexion)
+      String adminUID = 'fikLaXOxz2cke4Qs9qBJB8vynuC3'; // UID de Firebase Auth
+      
+      // Forcer la recréation avec le bon UID
+      await _forceCreateAdmin(adminEmail, adminUID);
+      
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la création de l\'admin: $e');
+    }
+  }
+
+  // Forcer la création/mise à jour de l'admin avec le bon UID
+  Future<void> _forceCreateAdmin(String adminEmail, String adminUID) async {
+    try {
+      // Nettoyer d'abord tous les anciens admins avec le mauvais UID
+      QuerySnapshot oldAdmins = await _db
+          .collection('users')
+          .where('email', isEqualTo: adminEmail)
+          .get();
+
+      // Supprimer les anciens documents admin
+      for (DocumentSnapshot doc in oldAdmins.docs) {
+        if (doc.id != adminUID) {
+          await doc.reference.delete();
+          debugPrint('🧹 Ancien admin supprimé: ${doc.id}');
+        }
+      }
+
+      // Créer/mettre à jour l'admin avec le bon UID
+      Map<String, dynamic> adminData = {
+        'uid': adminUID,
+        'email': adminEmail,
+        'userType': UserTypes.admin,
+        'name': 'Administrateur',
+        'fullName': 'Administrateur Système',
+        'isVerified': true,
+        'isApproved': true,
+        'status': 'active',
+        'createdAt': DateTime.now(),
+      };
+
+      // Utiliser l'UID Firebase Auth comme ID du document
+      await _db.collection('users').doc(adminUID).set(adminData, SetOptions(merge: true));
+      
+      debugPrint('✅ Admin créé/mis à jour avec UID: $adminUID');
+      debugPrint('📧 Email: $adminEmail | 🔑 Mot de passe: admin123');
+      
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la création forcée de l\'admin: $e');
     }
   }
 }

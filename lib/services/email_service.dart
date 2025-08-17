@@ -1,6 +1,9 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
 import '../utils/constants.dart';
+import '../config/email_config.dart';
 
 class EmailService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -25,12 +28,10 @@ class EmailService {
         'isUsed': false,
       });
 
-      // Dans une vraie application, vous enverriez l'email ici
-      // Pour la démo, nous pouvons stocker le code ou l'afficher dans les logs
-      print('Code de vérification pour $email: $code'); // À supprimer en production
-
-      // TODO: Intégrer un service d'email comme SendGrid, AWS SES, etc.
-      // await _sendEmailWithCode(email, code);
+      // Envoyer l'email avec le code de vérification
+      await _sendEmailWithCode(email, code);
+      
+      print('📧 Code de vérification envoyé à $email: $code'); // Log pour debug
 
     } catch (e) {
       throw 'Erreur lors de l\'envoi du code de vérification: $e';
@@ -53,7 +54,7 @@ class EmailService {
       }
 
       DocumentSnapshot doc = query.docs.first;
-      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      Map<String, dynamic> data = Map<String, dynamic>.from(doc.data() as Map);
 
       // Vérifier l'expiration
       DateTime expiresAt = (data['expiresAt'] as Timestamp).toDate();
@@ -147,28 +148,64 @@ class EmailService {
     }
   }
 
-  // Méthodes privées pour l'envoi d'emails (à implémenter avec un service tiers)
-
-  /*
+  // Méthodes privées pour l'envoi d'emails
+  
   Future<void> _sendEmailWithCode(String email, String code) async {
-    // Implémentation avec SendGrid, AWS SES, etc.
-    // Exemple de template d'email :
+    try {
+      // Vérifier si la configuration email est disponible
+      if (!SecureEmailConfig.isConfigured) {
+        print('⚠️ Configuration email non définie, affichage du code en console');
+        print('📧 Code de vérification pour $email: $code');
+        return;
+      }
 
-    String subject = 'Code de vérification - Delivery App';
-    String body = '''
-    Bonjour,
+      // Configuration du serveur SMTP Gmail
+      final smtpServer = gmail(SecureEmailConfig.senderEmail, SecureEmailConfig.senderPassword);
+      
+      // Création du message
+      final message = Message()
+        ..from = Address(SecureEmailConfig.senderEmail, EmailConfig.senderName)
+        ..recipients.add(email)
+        ..subject = 'Code de vérification - ${EmailConfig.appName}'
+        ..html = '''
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: ${EmailConfig.appColor}; color: white; padding: 20px; text-align: center;">
+            <h1>🏥 ${EmailConfig.appName}</h1>
+            <p>Livraison de médicaments</p>
+          </div>
+          
+          <div style="padding: 20px; background-color: #f5f5f5;">
+            <h2>Code de vérification</h2>
+            <p>Bonjour,</p>
+            <p>Voici votre code de vérification pour finaliser votre inscription :</p>
+            
+            <div style="text-align: center; margin: 20px 0;">
+              <span style="font-size: 32px; font-weight: bold; color: ${EmailConfig.appColor}; background-color: white; padding: 15px 25px; border-radius: 8px; border: 2px solid ${EmailConfig.appColor};">$code</span>
+            </div>
+            
+            <p style="color: #666;">⏰ Ce code expire dans <strong>${EmailConfig.codeExpirationMinutes} minutes</strong>.</p>
+            <p style="color: #666;">Si vous n'avez pas fait cette demande, ignorez ce message.</p>
+            
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+            <p style="color: #888; font-size: 12px;">
+              Cordialement,<br>
+              L'équipe ${EmailConfig.appName}<br>
+              Livraison de médicaments 24h/24<br>
+              Support: ${EmailConfig.supportEmail}
+            </p>
+          </div>
+        </div>
+        ''';
 
-    Votre code de vérification est : $code
-
-    Ce code expire dans 15 minutes.
-
-    Si vous n'avez pas fait cette demande, ignorez ce message.
-
-    Cordialement,
-    L'équipe Delivery App
-    ''';
-
-    // Envoyer l'email via le service choisi
+      // Envoi de l'email
+      await send(message, smtpServer);
+      
+    } catch (e) {
+      // En cas d'erreur d'envoi, on log et on continue sans bloquer l'inscription
+      print('⚠️ Erreur envoi email à $email: $e');
+      // On peut aussi afficher le code en console comme fallback
+      print('📧 Code de vérification pour $email: $code');
+    }
   }
 
   Future<void> _sendAdminNotificationEmail(Map<String, dynamic> pharmacyData) async {
@@ -182,7 +219,6 @@ class EmailService {
   Future<void> _sendApprovalEmail(String email, String fullName) async {
     // Email de notification d'approbation pour les livreurs
   }
-  */
 
   // Récupérer les notifications admin
   Stream<List<Map<String, dynamic>>> getAdminNotifications() {

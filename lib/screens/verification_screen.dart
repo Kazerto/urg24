@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_provider_simple.dart';
 import '../widgets/custom_button.dart';
 import '../utils/constants.dart';
-import 'login_screen.dart';
+import 'user_type_login_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
   final String email;
@@ -46,7 +46,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     });
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
       await authProvider.verifyEmail(_codeController.text.trim());
 
       if (mounted) {
@@ -73,7 +73,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     });
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
       await authProvider.resendVerificationCode(widget.email);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -127,7 +127,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                MaterialPageRoute(builder: (context) => const UserTypeLoginScreen()),
                     (route) => false,
               );
             },
