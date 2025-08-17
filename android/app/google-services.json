@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:978563578729:android:ca8ed54fe3556f0ddc1bf8",
+        "mobilesdk_app_id": "1:978563578729:android:6dffee000a12624cdc1bf8",
         "android_client_info": {
-          "package_name": "com.example.urgence24"
+          "package_name": "com.example.urgence24_new"
         }
       },
       "oauth_client": [],

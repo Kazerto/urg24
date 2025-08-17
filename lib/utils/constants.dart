@@ -13,7 +13,7 @@ class AppColors {
 }
 
 class AppStrings {
-  static const String appName = "Delivery App";
+  static const String appName = "Urgence 24";
   static const String welcome = "Bienvenue";
   static const String login = "Connexion";
   static const String register = "S'inscrire";

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter clean:*)",
+      "Bash(gradlew:*)",
+      "Bash(./gradlew:*)",
+      "Bash(flutter run:*)",
+      "Bash(rmdir:*)",
+      "Bash(rm:*)",
+      "Bash(flutter pub:*)",
+      "Bash(java:*)",
+      "Bash(javac:*)",
+      "Bash(flutter logs:*)",
+      "Bash(adb logcat:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
