@@ -13,7 +13,12 @@
       "Bash(flutter logs:*)",
       "Bash(adb logcat:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(flutter config:*)",
+      "Bash(flutter:*)",
+      "Bash(npm install:*)",
+      "Bash(firebase login:*)",
+      "Bash(firebase init:*)"
     ],
     "deny": [],
     "ask": []
