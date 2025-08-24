@@ -319,7 +319,7 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
                         ),
                       ),
                       Text(
-                        'Prix: ${stock.price.toStringAsFixed(0)} FCFA',
+                        'Prix: ${stock.price.toStringAsFixed(0)} ${AppStrings.currency}',
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -406,7 +406,7 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
               _buildDetailRow('Description', stock.description),
               _buildDetailRow('Quantité', stock.quantity.toString()),
               _buildDetailRow('Quantité minimale', stock.minQuantity.toString()),
-              _buildDetailRow('Prix unitaire', '${stock.price.toStringAsFixed(0)} FCFA'),
+              _buildDetailRow('Prix unitaire', '${stock.price.toStringAsFixed(0)} ${AppStrings.currency}'),
               _buildDetailRow('Fournisseur', stock.supplier),
               _buildDetailRow('Numéro de lot', stock.batchNumber),
               _buildDetailRow('Date d\'expiration', _formatDate(stock.expirationDate)),
@@ -509,7 +509,7 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
                   Expanded(
                     child: CustomTextField(
                       controller: priceController,
-                      label: 'Prix (FCFA)',
+                      label: 'Prix (${AppStrings.currency})',
                       prefixIcon: Icons.monetization_on,
                       keyboardType: TextInputType.number,
                     ),

@@ -53,8 +53,8 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
       
-      // Attendre l'animation et laisser du temps à Firebase de s'initialiser
-      await Future.delayed(const Duration(seconds: 2));
+      // Réduire le délai d'attente pour une meilleure performance
+      await Future.delayed(const Duration(milliseconds: 500));
       
       debugPrint('🔍 Splash: Vérification de l\'authentification persistante...');
       
@@ -127,51 +127,22 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo de l'application
-              Container(
-                width: AppDimensions.logoSize,
-                height: AppDimensions.logoSize,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      spreadRadius: 5,
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    width: AppDimensions.logoSize,
-                    height: AppDimensions.logoSize,
-                    fit: BoxFit.contain,
-                  ),
-                ),
+              // Logo de l'application (sans ombre, plus grand)
+              Image.asset(
+                'assets/images/logo.png',
+                width: AppDimensions.logoSize + 60,  // Logo encore plus grand
+                height: AppDimensions.logoSize + 60,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: AppDimensions.paddingLarge),
-              // Nom de l'application
-              const Text(
-                AppStrings.appName,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: AppDimensions.paddingSmall),
-              // Sous-titre
+              // Sous-titre seulement (pas de répétition du nom)
               const Text(
                 "Livraison de médicaments",
                 style: TextStyle(
                   color: Colors.white70,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w300,
+                  fontSize: 18,  // Un peu plus grand pour compenser
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.5,
                 ),
               ),
             ],

@@ -20,30 +20,11 @@ class UserTypeLoginScreen extends StatelessWidget {
               Center(
                 child: Column(
                   children: [
-                    Container(
-                      width: AppDimensions.logoSize,
-                      height: AppDimensions.logoSize,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            spreadRadius: 5,
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: AppDimensions.logoSize,
-                          height: AppDimensions.logoSize,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+                    Image.asset(
+                      'assets/images/logo.png',
+                      width: AppDimensions.logoSize + 40,  // Plus grand sans container ni ombre
+                      height: AppDimensions.logoSize + 40,
+                      fit: BoxFit.contain,
                     ),
                     const SizedBox(height: AppDimensions.paddingLarge),
                     const Text(
@@ -103,35 +84,6 @@ class UserTypeLoginScreen extends StatelessWidget {
                     ),
                     
                     const Spacer(flex: 2),
-                    
-                    // Message d'information pour administrateurs
-                    Container(
-                      padding: const EdgeInsets.all(AppDimensions.paddingMedium),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
-                        border: Border.all(color: AppColors.lightBlue.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.admin_panel_settings,
-                            color: AppColors.primaryColor,
-                            size: 20,
-                          ),
-                          const SizedBox(width: AppDimensions.paddingSmall),
-                          Expanded(
-                            child: Text(
-                              'Administrateurs : utilisez vos identifiants dans la connexion utilisateur.',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider_simple.dart';
 import '../../services/firestore_service.dart';
+import '../../widgets/universal_drawer.dart';
 import '../../utils/constants.dart';
 import '../../widgets/custom_button.dart';
 import 'pharmacy_requests_screen.dart';
@@ -28,7 +29,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
-        title: const Text('Administration'),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/logo.png',
+              width: 36,  // Plus grand sans contrainte de container
+              height: 36,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Administration',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: AppColors.primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -43,32 +61,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               );
             },
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'logout') {
-                await authProvider.signOut();
-                if (context.mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                        (route) => false,
-                  );
-                }
-              }
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              setState(() {}); // Refresh dashboard data
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: AppColors.errorColor),
-                    SizedBox(width: 8),
-                    Text('Déconnexion'),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
+      ),
+      drawer: Consumer<AuthProviderSimple>(
+        builder: (context, authProvider, child) {
+          return UniversalDrawer(
+            userType: 'admin',
+            userName: 'Administrateur',
+            userEmail: authProvider.userData?['email']?.toString() ?? 'admin@urgence24.com',
+            userData: authProvider.userData,
+          );
+        },
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppDimensions.paddingLarge),

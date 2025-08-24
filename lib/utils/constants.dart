@@ -31,6 +31,7 @@ class AppStrings {
   static const String agency = "Agence";
   static const String vehicleType = "Type d'engin";
   static const String plateNumber = "Numéro de plaque";
+  static const String currency = "Fcfa";
 }
 
 class UserTypes {

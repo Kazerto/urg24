@@ -18,23 +18,44 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
   
-  // Test de connexion Firestore
-  bool firestoreOk = await FirestoreTest.testConnection();
-  if (firestoreOk) {
-    debugPrint('🚀 Firestore configuré correctement');
-    
-    // Initialiser les collections et créer l'admin par défaut
-    final firestoreService = FirestoreService();
-    await firestoreService.initializePharmacyRequestsCollection();
-    await firestoreService.createDefaultAdmin();
+  // Configuration Firebase pour web
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyD8rP_wBobhMVNxp-JPsVt0JDrYRPSL84U",
+        authDomain: "urgence24-1f259.firebaseapp.com",
+        databaseURL: "https://urgence24-1f259-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "urgence24-1f259",
+        storageBucket: "urgence24-1f259.firebasestorage.app",
+        messagingSenderId: "978563578729",
+        appId: "1:978563578729:web:6a6d8bebb248154ddc1bf8",
+        measurementId: "G-XT5NDLEG6G",
+      ),
+    );
   } else {
-    debugPrint('⚠️ Problème de configuration Firestore');
+    await Firebase.initializeApp();
   }
   
-  // Charger la configuration email sauvegardée
-  await _loadEmailConfig();
+  // Test de connexion Firestore et initialisation (seulement sur mobile)
+  if (!kIsWeb) {
+    bool firestoreOk = await FirestoreTest.testConnection();
+    if (firestoreOk) {
+      debugPrint('🚀 Firestore configuré correctement');
+      
+      // Initialiser les collections et créer l'admin par défaut
+      final firestoreService = FirestoreService();
+      await firestoreService.initializePharmacyRequestsCollection();
+      await firestoreService.createDefaultAdmin();
+    } else {
+      debugPrint('⚠️ Problème de configuration Firestore');
+    }
+    
+    // Charger la configuration email sauvegardée
+    await _loadEmailConfig();
+  } else {
+    debugPrint('🌐 Application web démarrée');
+  }
   
   runApp(const DeliveryApp());
 }

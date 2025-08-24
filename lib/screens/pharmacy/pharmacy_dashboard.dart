@@ -345,7 +345,7 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
                   ),
                 ),
                 Text(
-                  '${totalRevenue.toStringAsFixed(0)} FCFA',
+                  '${totalRevenue.toStringAsFixed(0)} ${AppStrings.currency}',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -545,7 +545,7 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
         ),
         title: Text(order.clientName),
         subtitle: Text(
-          '${order.items.length} articles - ${order.totalAmount.toStringAsFixed(0)} FCFA',
+          '${order.items.length} articles - ${order.totalAmount.toStringAsFixed(0)} ${AppStrings.currency}',
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -265,7 +265,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen>
                   Icon(Icons.monetization_on, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    '${order.totalAmount.toStringAsFixed(0)} FCFA',
+                    '${order.totalAmount.toStringAsFixed(0)} ${AppStrings.currency}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
@@ -491,12 +491,12 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen>
               _buildOrderDetailSection('Commande', [
                 'Date: ${_formatDateTime(order.orderDate)}',
                 'Statut: ${_getStatusText(order.status)}',
-                'Total: ${order.totalAmount.toStringAsFixed(0)} FCFA',
+                'Total: ${order.totalAmount.toStringAsFixed(0)} ${AppStrings.currency}',
               ]),
               const SizedBox(height: 16),
               _buildOrderDetailSection('Articles', 
                 order.items.map((item) => 
-                  '${item.medicamentName} x${item.quantity} - ${item.totalPrice.toStringAsFixed(0)} FCFA'
+                  '${item.medicamentName} x${item.quantity} - ${item.totalPrice.toStringAsFixed(0)} ${AppStrings.currency}'
                 ).toList()
               ),
               if (order.notes?.isNotEmpty == true) ...[
@@ -559,8 +559,8 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildStatRow('Total commandes', totalOrders.toString()),
-            _buildStatRow('Chiffre d\'affaires', '${totalRevenue.toStringAsFixed(0)} FCFA'),
-            _buildStatRow('Valeur moyenne', '${averageOrderValue.toStringAsFixed(0)} FCFA'),
+            _buildStatRow('Chiffre d\'affaires', '${totalRevenue.toStringAsFixed(0)} ${AppStrings.currency}'),
+            _buildStatRow('Valeur moyenne', '${averageOrderValue.toStringAsFixed(0)} ${AppStrings.currency}'),
             _buildStatRow('En attente', pendingOrders.length.toString()),
             _buildStatRow('Confirmées', confirmedOrders.length.toString()),
             _buildStatRow('En préparation', preparingOrders.length.toString()),

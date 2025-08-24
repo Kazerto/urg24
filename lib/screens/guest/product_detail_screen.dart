@@ -415,7 +415,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${price.toStringAsFixed(2)}€',
+                      '${price.toStringAsFixed(0)} ${AppStrings.currency}',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -525,7 +525,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           'Fonctionnalité de commande en cours de développement.\n\n'
           'Produit: ${widget.productName}\n'
           'Pharmacie: ${pharmacy['pharmacyName']}\n'
-          'Prix: ${pharmacy['price']}€'
+          'Prix: ${pharmacy['price']} ${AppStrings.currency}'
         ),
         actions: [
           TextButton(

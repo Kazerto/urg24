@@ -315,7 +315,7 @@ class _ClientOrdersScreenState extends State<ClientOrdersScreen> {
             Row(
               children: [
                 Text(
-                  'Total: ${order.totalAmount.toStringAsFixed(0)} FCFA',
+                  'Total: ${order.totalAmount.toStringAsFixed(0)} ${AppStrings.currency}',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -480,7 +480,7 @@ class _ClientOrdersScreenState extends State<ClientOrdersScreen> {
                     ...order.items.map((item) => ListTile(
                       title: Text(item.medicamentName),
                       subtitle: Text('Quantité: ${item.quantity}'),
-                      trailing: Text('${item.unitPrice.toStringAsFixed(2)}€'),
+                      trailing: Text('${item.unitPrice.toStringAsFixed(0)} ${AppStrings.currency}'),
                     )),
                     const Divider(),
                     ListTile(
@@ -489,7 +489,7 @@ class _ClientOrdersScreenState extends State<ClientOrdersScreen> {
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       trailing: Text(
-                        '${order.totalAmount.toStringAsFixed(0)} FCFA',
+                        '${order.totalAmount.toStringAsFixed(0)} ${AppStrings.currency}',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

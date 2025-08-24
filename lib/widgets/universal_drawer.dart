@@ -222,9 +222,29 @@ class UniversalDrawer extends StatelessWidget {
       ),
       _buildMenuItem(
         context,
-        Icons.sync,
-        'Synchronisation',
-        () => Navigator.pushNamed(context, '/admin/sync'),
+        Icons.email,
+        'Configuration Email',
+        () => Navigator.pushNamed(context, '/admin/email-config'),
+      ),
+      const Divider(),
+      _buildSectionHeader('Gestion'),
+      _buildMenuItem(
+        context,
+        Icons.people,
+        'Utilisateurs',
+        () => Navigator.pushNamed(context, '/admin/users'),
+      ),
+      _buildMenuItem(
+        context,
+        Icons.analytics,
+        'Statistiques',
+        () => Navigator.pushNamed(context, '/admin/analytics'),
+      ),
+      _buildMenuItem(
+        context,
+        Icons.backup,
+        'Sauvegarde',
+        () => Navigator.pushNamed(context, '/admin/backup'),
       ),
     ];
   }

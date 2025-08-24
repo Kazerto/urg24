@@ -349,7 +349,7 @@ class _ProductsBrowserScreenState extends State<ProductsBrowserScreen> {
                       children: [
                         Flexible(
                           child: Text(
-                            '${price.toStringAsFixed(2)}€',
+                            '${price.toStringAsFixed(0)} ${AppStrings.currency}',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
