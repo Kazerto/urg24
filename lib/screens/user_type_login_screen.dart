@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 import 'login_screen.dart';
+import 'guest/categories_browser_screen.dart';
 
 class UserTypeLoginScreen extends StatelessWidget {
   const UserTypeLoginScreen({super.key});
@@ -83,6 +84,21 @@ class UserTypeLoginScreen extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 30),
+                    
+                    // Bouton Explorer sans se connecter
+                    _buildUserTypeCard(
+                      context,
+                      title: 'Explorer les produits',
+                      subtitle: 'Parcourir sans se connecter',
+                      icon: Icons.explore,
+                      color: AppColors.lightBlue,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const CategoriesBrowserScreen()),
                       ),
                     ),
                     

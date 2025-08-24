@@ -5,10 +5,13 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../utils/constants.dart';
 import '../utils/validators.dart';
+import '../models/pharmacy_model.dart';
+import '../services/firestore_service.dart';
 import 'registration/user_type_selection.dart';
 import 'client/client_dashboard.dart';
 import 'admin/admin_dashboard.dart';
 import 'admin/sync_admin_screen.dart';
+import 'pharmacy/pharmacy_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,6 +32,38 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _navigateToPharmacyDashboard(AuthProviderSimple authProvider) async {
+    try {
+      // Récupérer les données de la pharmacie depuis Firestore
+      final firestoreService = FirestoreService();
+      final pharmacyData = await firestoreService.getPharmacyByEmail(authProvider.userData!['email']);
+      
+      if (pharmacyData != null) {
+        final pharmacy = PharmacyModel.fromMap(pharmacyData, pharmacyData['id'] ?? '');
+        
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => PharmacyDashboard(pharmacy: pharmacy),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur: Données de pharmacie introuvables'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors du chargement des données: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _login() async {
@@ -59,12 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
               );
               break;
             case 'pharmacy':
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Interface pharmacie en développement'),
-                  backgroundColor: AppColors.primaryColor,
-                ),
-              );
+              await _navigateToPharmacyDashboard(authProvider);
               break;
             case 'delivery_person':
               ScaffoldMessenger.of(context).showSnackBar(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider_simple.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/constants.dart';
@@ -267,7 +268,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           pharmacy['pharmacyName'],
                           Icons.local_pharmacy,
                           AppColors.warningColor,
-                          pharmacy['createdAt']?.toDate() ?? DateTime.now(),
+                          _parseDate(pharmacy['createdAt']),
                         ));
                       }
                     }
@@ -280,7 +281,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           delivery['fullName'],
                           Icons.delivery_dining,
                           AppColors.primaryColor,
-                          delivery['createdAt']?.toDate() ?? DateTime.now(),
+                          _parseDate(delivery['createdAt']),
                         ));
                       }
                     }
@@ -456,6 +457,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ],
       ),
     );
+  }
+
+  DateTime _parseDate(dynamic dateValue) {
+    if (dateValue == null) return DateTime.now();
+    
+    if (dateValue is Timestamp) {
+      return dateValue.toDate();
+    } else if (dateValue is DateTime) {
+      return dateValue;
+    } else if (dateValue is String) {
+      try {
+        return DateTime.parse(dateValue);
+      } catch (e) {
+        return DateTime.now();
+      }
+    } else {
+      return DateTime.now();
+    }
   }
 
   String _formatDate(DateTime date) {

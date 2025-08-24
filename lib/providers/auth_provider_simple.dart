@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service_simple.dart';
 import '../utils/constants.dart';
 
@@ -40,6 +41,49 @@ class AuthProviderSimple with ChangeNotifier {
   AuthProviderSimple() {
     // Écouter les changements d'état d'authentification
     _authService.authStateChanges.listen(_onAuthStateChanged);
+  }
+
+  // Vérifier l'authentification persistante au démarrage
+  Future<bool> checkPersistedAuth() async {
+    try {
+      _setLoading(true);
+      
+      // Attendre que Firebase Auth soit complètement initialisé
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Forcer une vérification de l'état actuel
+      await FirebaseAuth.instance.authStateChanges().first;
+      
+      // Vérifier si un utilisateur est déjà connecté
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        debugPrint('🔍 Aucun utilisateur persisté trouvé après vérification');
+        return false;
+      }
+
+      debugPrint('🔍 Utilisateur persisté trouvé: ${currentUser.email}');
+      
+      // Récupérer les données utilisateur depuis Firestore
+      Map<String, dynamic>? userData = await _authService.getCurrentUserData(currentUser.uid);
+      
+      if (userData != null) {
+        _user = currentUser;
+        _userData = userData;
+        notifyListeners();
+        debugPrint('✅ Authentification persistante réussie: ${userData['userType']}');
+        return true;
+      } else {
+        debugPrint('⚠️ Données utilisateur non trouvées, déconnexion nécessaire');
+        await FirebaseAuth.instance.signOut();
+        return false;
+      }
+      
+    } catch (e) {
+      debugPrint('❌ Erreur vérification auth persistante: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   void _onAuthStateChanged(User? user) {
@@ -116,6 +160,86 @@ class AuthProviderSimple with ChangeNotifier {
       debugPrint('📧 Nouveau code pour $email: $newCode');
       
       return newCode;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Inscription spécifique pharmacie (sauvegarder dans pharmacy_requests avec vérification email)
+  Future<String> registerPharmacy(Map<String, dynamic> pharmacyData) async {
+    _setLoading(true);
+    try {
+      // Préparer les données pour la demande de pharmacie
+      Map<String, dynamic> requestData = {
+        'pharmacyName': pharmacyData['pharmacyName'],
+        'email': pharmacyData['email'],
+        'phoneNumber': pharmacyData['phoneNumber'],
+        'address': pharmacyData['address'],
+        'licenseNumber': pharmacyData['licenseNumber'],
+        'openingHours': pharmacyData['openingHours'],
+        'status': 'pending_verification', // D'abord vérification email
+        'isVerified': false,
+        'isApproved': false,
+        'createdAt': DateTime.now(),
+      };
+
+      // Sauvegarder dans pharmacy_requests
+      await FirebaseFirestore.instance
+          .collection('pharmacy_requests')
+          .add(requestData);
+
+      debugPrint('✅ Demande de pharmacie sauvegardée: ${pharmacyData['pharmacyName']}');
+
+      // Sauvegarder le mot de passe temporaire pour pouvoir le retrouver lors de l'approbation
+      String tempPassword = 'temp_pharmacy_${pharmacyData['email'].hashCode}';
+      
+      // Mettre à jour la demande avec le mot de passe temporaire (hashé)
+      await FirebaseFirestore.instance
+          .collection('pharmacy_requests')
+          .where('email', isEqualTo: pharmacyData['email'])
+          .limit(1)
+          .get()
+          .then((snapshot) {
+        if (snapshot.docs.isNotEmpty) {
+          snapshot.docs.first.reference.update({
+            'tempPasswordHash': tempPassword.hashCode.toString(),
+          });
+        }
+      });
+
+      // Envoyer le code de vérification par email
+      String verificationCode = await _authService.registerUser(
+        email: pharmacyData['email'],
+        password: tempPassword,
+        userData: {'userType': 'pharmacy_request', 'email': pharmacyData['email']},
+      );
+
+      return verificationCode;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Inscription spécifique livreur (sans créer de compte Firebase Auth)
+  Future<String> registerDeliveryPerson(Map<String, dynamic> deliveryData) async {
+    _setLoading(true);
+    try {
+      // Ajouter les métadonnées
+      deliveryData['userType'] = UserTypes.deliveryPerson;
+      deliveryData['createdAt'] = DateTime.now();
+      deliveryData['status'] = 'pending_approval';
+      deliveryData['isVerified'] = false;
+      deliveryData['isApproved'] = false;
+
+      // Sauvegarder directement dans delivery_persons (pas d'auth Firebase)
+      await FirebaseFirestore.instance
+          .collection('delivery_persons')
+          .add(deliveryData);
+
+      // Notifier l'admin
+      await _authService.notifyAdminDeliveryRequest(deliveryData);
+
+      return 'pending'; // Code de vérification fictif
     } finally {
       _setLoading(false);
     }

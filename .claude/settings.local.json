@@ -13,7 +13,11 @@
       "Bash(flutter logs:*)",
       "Bash(adb logcat:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(adb uninstall:*)",
+      "Bash(flutter:*)",
+      "Bash(adb:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

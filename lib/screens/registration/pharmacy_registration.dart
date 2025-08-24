@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/auth_provider_simple.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import '../../utils/constants.dart';
@@ -18,17 +18,23 @@ class _PharmacyRegistrationScreenState extends State<PharmacyRegistrationScreen>
   final _formKey = GlobalKey<FormState>();
   final _pharmacyNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _licenseNumberController = TextEditingController();
   final _openingHoursController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   @override
   void dispose() {
     _pharmacyNameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     _licenseNumberController.dispose();
@@ -43,11 +49,12 @@ class _PharmacyRegistrationScreenState extends State<PharmacyRegistrationScreen>
       });
 
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
 
         final userData = {
           'pharmacyName': _pharmacyNameController.text.trim(),
           'email': _emailController.text.trim(),
+          'password': _passwordController.text.trim(),
           'phoneNumber': _phoneController.text.trim(),
           'address': _addressController.text.trim(),
           'licenseNumber': _licenseNumberController.text.trim(),
@@ -140,6 +147,51 @@ class _PharmacyRegistrationScreenState extends State<PharmacyRegistrationScreen>
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.email_outlined,
                   validator: Validators.validateEmail,
+                ),
+                const SizedBox(height: AppDimensions.paddingMedium),
+
+                // Mot de passe
+                CustomTextField(
+                  controller: _passwordController,
+                  label: 'Mot de passe',
+                  obscureText: !_isPasswordVisible,
+                  prefixIcon: Icons.lock_outlined,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
+                  validator: Validators.validatePassword,
+                ),
+                const SizedBox(height: AppDimensions.paddingMedium),
+
+                // Confirmer mot de passe
+                CustomTextField(
+                  controller: _confirmPasswordController,
+                  label: 'Confirmer le mot de passe',
+                  obscureText: !_isConfirmPasswordVisible,
+                  prefixIcon: Icons.lock_outlined,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                      });
+                    },
+                  ),
+                  validator: (value) {
+                    if (value != _passwordController.text) {
+                      return 'Les mots de passe ne correspondent pas';
+                    }
+                    return Validators.validatePassword(value);
+                  },
                 ),
                 const SizedBox(height: AppDimensions.paddingMedium),
 

@@ -1,11 +1,11 @@
 {
-    "name": "urgence24_new",
-    "short_name": "urgence24_new",
+    "name": "Urgence 24 - Livraison de médicaments",
+    "short_name": "Urgence24",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1976D2",
+    "theme_color": "#1976D2",
+    "description": "Application de livraison de médicaments d'urgence 24h/24",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/firestore_service.dart';
 import '../../services/email_service.dart';
 import '../../utils/constants.dart';
@@ -29,7 +30,7 @@ class _PharmacyRequestsScreenState extends State<PharmacyRequestsScreen> {
 
       // Approuver la pharmacie
       await _firestoreService.approvePharmacy(
-        pharmacy['id'],
+        pharmacy['id'],  // Maintenant c'est l'UID de l'utilisateur
         pharmacy['email'],
         password,
       );
@@ -197,7 +198,24 @@ class _PharmacyRequestsScreenState extends State<PharmacyRequestsScreen> {
   }
 
   Widget _buildPharmacyCard(Map<String, dynamic> pharmacy) {
-    DateTime createdAt = pharmacy['createdAt']?.toDate() ?? DateTime.now();
+    DateTime createdAt = DateTime.now();
+    
+    // Gérer les différents types de createdAt (Timestamp, DateTime, String)
+    if (pharmacy['createdAt'] != null) {
+      var createdAtValue = pharmacy['createdAt'];
+      if (createdAtValue is Timestamp) {
+        createdAt = createdAtValue.toDate();
+      } else if (createdAtValue is DateTime) {
+        createdAt = createdAtValue;
+      } else if (createdAtValue is String) {
+        try {
+          createdAt = DateTime.parse(createdAtValue);
+        } catch (e) {
+          createdAt = DateTime.now();
+        }
+      }
+    }
+    
     String timeAgo = _getTimeAgo(createdAt);
 
     return Card(
@@ -380,6 +398,31 @@ class _PharmacyRequestsScreenState extends State<PharmacyRequestsScreen> {
     );
   }
 
+  String _formatDate(dynamic dateValue) {
+    return _formatDateStatic(dateValue);
+  }
+
+  static String _formatDateStatic(dynamic dateValue) {
+    if (dateValue == null) return 'Non spécifiée';
+    
+    DateTime date = DateTime.now();
+    if (dateValue is Timestamp) {
+      date = dateValue.toDate();
+    } else if (dateValue is DateTime) {
+      date = dateValue;
+    } else if (dateValue is String) {
+      try {
+        date = DateTime.parse(dateValue);
+      } catch (e) {
+        return 'Format invalide';
+      }
+    } else {
+      return 'Format inconnu';
+    }
+    
+    return date.toString().split(' ')[0]; // Return yyyy-mm-dd format
+  }
+
   String _getTimeAgo(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
@@ -504,7 +547,7 @@ class _PharmacyDetailsSheet extends StatelessWidget {
                   'Informations système',
                   [
                     _buildDetailRow(Icons.calendar_today, 'Date de demande', 
-                      pharmacy['createdAt']?.toDate().toString().split(' ')[0] ?? 'Non spécifiée'),
+                      _PharmacyRequestsScreenState._formatDateStatic(pharmacy['createdAt'])),
                   ],
                 ),
 

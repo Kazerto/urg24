@@ -5,6 +5,10 @@ import 'package:provider/provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/client/client_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
+import 'screens/pharmacy/pharmacy_dashboard.dart';
+import 'screens/pharmacy/stock_management_screen.dart';
+import 'screens/pharmacy/orders_management_screen.dart';
+import 'screens/pharmacy/partners_management_screen.dart';
 import 'providers/auth_provider_simple.dart';
 import 'services/firestore_service.dart';
 import 'config/email_config.dart';
@@ -21,8 +25,9 @@ void main() async {
   if (firestoreOk) {
     debugPrint('🚀 Firestore configuré correctement');
     
-    // Créer l'admin par défaut
+    // Initialiser les collections et créer l'admin par défaut
     final firestoreService = FirestoreService();
+    await firestoreService.initializePharmacyRequestsCollection();
     await firestoreService.createDefaultAdmin();
   } else {
     debugPrint('⚠️ Problème de configuration Firestore');
@@ -73,6 +78,42 @@ class DeliveryApp extends StatelessWidget {
         routes: {
           '/client-dashboard': (context) => const ClientDashboard(),
           '/admin-dashboard': (context) => const AdminDashboardScreen(),
+        },
+        onGenerateRoute: (settings) {
+          // Routes dynamiques pour les pharmacies
+          if (settings.name?.startsWith('/pharmacy') == true) {
+            final args = settings.arguments as Map<String, dynamic>?;
+            final pharmacy = args?['pharmacy'];
+            
+            if (pharmacy == null) {
+              return MaterialPageRoute(
+                builder: (_) => const Scaffold(
+                  body: Center(child: Text('Erreur: Données de pharmacie manquantes')),
+                ),
+              );
+            }
+
+            switch (settings.name) {
+              case '/pharmacy-dashboard':
+                return MaterialPageRoute(
+                  builder: (_) => PharmacyDashboard(pharmacy: pharmacy),
+                );
+              case '/pharmacy/stock':
+                return MaterialPageRoute(
+                  builder: (_) => StockManagementScreen(pharmacy: pharmacy),
+                );
+              case '/pharmacy/orders':
+                return MaterialPageRoute(
+                  builder: (_) => OrdersManagementScreen(pharmacy: pharmacy),
+                );
+              case '/pharmacy/partners':
+                return MaterialPageRoute(
+                  builder: (_) => PartnersManagementScreen(pharmacy: pharmacy),
+                );
+            }
+          }
+          
+          return null;
         },
         debugShowCheckedModeBanner: false,
       ),

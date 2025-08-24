@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/auth_provider_simple.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import '../../utils/constants.dart';
@@ -60,7 +60,7 @@ class _DeliveryRegistrationScreenState extends State<DeliveryRegistrationScreen>
       });
 
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
 
         final userData = {
           'fullName': _fullNameController.text.trim(),
@@ -76,11 +76,7 @@ class _DeliveryRegistrationScreenState extends State<DeliveryRegistrationScreen>
           'createdAt': DateTime.now(),
         };
 
-        await authProvider.registerDeliveryPerson(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-          userData,
-        );
+        await authProvider.registerDeliveryPerson(userData);
 
         if (mounted) {
           Navigator.of(context).pushReplacement(

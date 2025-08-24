@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider_simple.dart';
+import '../../widgets/universal_drawer.dart';
+import '../guest/categories_browser_screen.dart';
+import 'client_orders_screen.dart';
 import '../../utils/constants.dart';
 
 class ClientDashboard extends StatelessWidget {
@@ -29,6 +32,16 @@ class ClientDashboard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+      drawer: Consumer<AuthProviderSimple>(
+        builder: (context, authProvider, child) {
+          return UniversalDrawer(
+            userType: 'client',
+            userName: authProvider.displayName,
+            userEmail: authProvider.userData?['email']?.toString() ?? '',
+            userData: authProvider.userData,
+          );
+        },
       ),
       body: SafeArea(
         child: Padding(
@@ -124,10 +137,10 @@ class ClientDashboard extends StatelessWidget {
                       subtitle: 'Nouvelle commande',
                       color: AppColors.primaryColor,
                       onTap: () {
-                        // TODO: Naviguer vers la page de commande
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Fonctionnalité en développement'),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CategoriesBrowserScreen(),
                           ),
                         );
                       },
@@ -138,10 +151,10 @@ class ClientDashboard extends StatelessWidget {
                       subtitle: 'Historique',
                       color: AppColors.accentColor,
                       onTap: () {
-                        // TODO: Naviguer vers l'historique
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Fonctionnalité en développement'),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ClientOrdersScreen(),
                           ),
                         );
                       },

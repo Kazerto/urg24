@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/constants.dart';
 
@@ -157,19 +158,80 @@ class FirestoreService {
 
       Map<String, dynamic> requestData = requestDoc.data() as Map<String, dynamic>;
 
+      // Chercher le compte Firebase Auth existant dans la collection users
+      debugPrint('🔍 Recherche du compte existant pour: $email');
+      
+      QuerySnapshot existingUsers = await _db
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .where('userType', isEqualTo: 'pharmacy_request')
+          .limit(1)
+          .get();
+      
+      String uid;
+      if (existingUsers.docs.isNotEmpty) {
+        // Utiliser l'UID existant et mettre à jour le mot de passe
+        uid = existingUsers.docs.first.id;
+        debugPrint('✅ Compte existant trouvé, UID: $uid');
+        
+        // Récupérer le mot de passe temporaire utilisé lors de l'inscription
+        String tempPassword = 'temp_pharmacy_${email.hashCode}';
+        
+        // Se connecter avec le mot de passe temporaire pour le changer
+        try {
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: email,
+            password: tempPassword,
+          );
+          // Changer le mot de passe
+          await FirebaseAuth.instance.currentUser?.updatePassword(password);
+          debugPrint('✅ Mot de passe mis à jour avec succès');
+          // Se déconnecter pour ne pas affecter la session admin
+          await FirebaseAuth.instance.signOut();
+        } catch (e) {
+          debugPrint('⚠️ Erreur lors de la mise à jour du mot de passe: $e');
+          // Continuer avec l'UID existant même si la mise à jour échoue
+        }
+      } else {
+        debugPrint('⚠️ Aucun compte temporaire trouvé, création d\'un nouveau compte');
+        // Fallback: créer un nouveau compte si aucun temporaire n'existe
+        try {
+          UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+          uid = userCredential.user!.uid;
+          debugPrint('✅ Nouveau compte créé avec UID: $uid');
+        } catch (e) {
+          if (e.toString().contains('email-already-in-use')) {
+            // Le compte existe mais pas dans notre collection users
+            // Il faut le retrouver d'une autre façon
+            throw 'Email déjà utilisé. Veuillez supprimer le compte existant d\'abord.';
+          }
+          throw e;
+        }
+      }
+
       // Créer les données utilisateur de la pharmacie
       Map<String, dynamic> pharmacyUserData = {
+        'uid': uid,
         'email': email,
+        'pharmacyName': requestData['pharmacyName'],
+        'phoneNumber': requestData['phoneNumber'],
+        'address': requestData['address'],
+        'licenseNumber': requestData['licenseNumber'],
+        'openingHours': requestData['openingHours'],
         'userType': UserTypes.pharmacy,
         'isVerified': true,
         'isApproved': true,
         'status': 'active',
         'createdAt': requestData['createdAt'],
-        'approvedAt': DateTime.now(),
+        'approvedAt': FieldValue.serverTimestamp(),
       };
 
-      // Créer les données spécifiques de la pharmacie
+      // Créer les données spécifiques de la pharmacie pour l'interface
       Map<String, dynamic> pharmacyData = {
+        'uid': uid,
         'pharmacyName': requestData['pharmacyName'],
         'email': email,
         'phoneNumber': requestData['phoneNumber'],
@@ -180,20 +242,22 @@ class FirestoreService {
         'rating': 0.0,
         'totalOrders': 0,
         'createdAt': requestData['createdAt'],
-        'approvedAt': DateTime.now(),
+        'approvedAt': FieldValue.serverTimestamp(),
       };
 
-      // Note: Dans une vraie application, vous devriez créer le compte Firebase Auth
-      // via les Admin SDKs côté serveur pour des raisons de sécurité
-
-      // Sauvegarder dans les collections
-      String pharmacyId = _db.collection('pharmacies').doc().id;
-      await _db.collection('pharmacies').doc(pharmacyId).set(pharmacyData);
+      // Sauvegarder dans les collections avec le vrai UID Firebase
+      await _db.collection('users').doc(uid).set(pharmacyUserData);
+      await _db.collection('pharmacies').doc(uid).set(pharmacyData);
 
       // Supprimer la demande des demandes en attente
       await _db.collection('pharmacy_requests').doc(requestId).delete();
 
+      debugPrint('✅ Pharmacie ${requestData['pharmacyName']} approuvée avec succès');
+      debugPrint('📧 Email: $email');
+      debugPrint('🔑 Mot de passe temporaire: $password');
+
     } catch (e) {
+      debugPrint('❌ Erreur lors de l\'approbation: $e');
       throw 'Erreur lors de l\'approbation de la pharmacie: $e';
     }
   }
@@ -203,23 +267,72 @@ class FirestoreService {
     return _db
         .collection('pharmacy_requests')
         .where('status', isEqualTo: 'pending_admin_approval')
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => {'id': doc.id, ...doc.data()})
-        .toList());
+        .map((snapshot) {
+          final docs = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList();
+          
+          // Trier côté client pour éviter l'index composé
+          docs.sort((a, b) {
+            final aCreated = a['createdAt'];
+            final bCreated = b['createdAt'];
+            if (aCreated == null || bCreated == null) return 0;
+            // Gérer les différents types de Timestamp
+            DateTime? dateA, dateB;
+            if (aCreated is Timestamp) {
+              dateA = aCreated.toDate();
+            } else if (aCreated is DateTime) {
+              dateA = aCreated;
+            }
+            if (bCreated is Timestamp) {
+              dateB = bCreated.toDate();
+            } else if (bCreated is DateTime) {
+              dateB = bCreated;
+            }
+            if (dateA == null || dateB == null) return 0;
+            return dateB.compareTo(dateA); // Plus récent en premier
+          });
+          
+          return docs;
+        });
   }
 
   // Récupérer tous les livreurs en attente d'approbation
   Stream<List<Map<String, dynamic>>> getPendingDeliveryPersons() {
     return _db
-        .collection('delivery_persons')
+        .collection('users')
+        .where('userType', isEqualTo: 'delivery_person')
         .where('status', isEqualTo: 'pending_approval')
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => {'uid': doc.id, ...doc.data()})
-        .toList());
+        .map((snapshot) {
+          final docs = snapshot.docs
+              .map((doc) => {'uid': doc.id, ...doc.data()})
+              .toList();
+          
+          // Trier côté client pour éviter l'index composé
+          docs.sort((a, b) {
+            final aCreated = a['createdAt'];
+            final bCreated = b['createdAt'];
+            if (aCreated == null || bCreated == null) return 0;
+            // Gérer les différents types de Timestamp
+            DateTime? dateA, dateB;
+            if (aCreated is Timestamp) {
+              dateA = aCreated.toDate();
+            } else if (aCreated is DateTime) {
+              dateA = aCreated;
+            }
+            if (bCreated is Timestamp) {
+              dateB = bCreated.toDate();
+            } else if (bCreated is DateTime) {
+              dateB = bCreated;
+            }
+            if (dateA == null || dateB == null) return 0;
+            return dateB.compareTo(dateA); // Plus récent en premier
+          });
+          
+          return docs;
+        });
   }
 
   // Récupérer les pharmacies actives
@@ -244,6 +357,27 @@ class FirestoreService {
         .map((snapshot) => snapshot.docs
         .map((doc) => {'uid': doc.id, ...doc.data()})
         .toList());
+  }
+
+  // Récupérer une pharmacie par email
+  Future<Map<String, dynamic>?> getPharmacyByEmail(String email) async {
+    try {
+      final querySnapshot = await _db
+          .collection('pharmacies')
+          .where('email', isEqualTo: email)
+          .where('isActive', isEqualTo: true)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        return {'id': doc.id, ...doc.data()};
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération de la pharmacie: $e');
+      rethrow;
+    }
   }
 
   // Mettre à jour le profil utilisateur
@@ -349,6 +483,35 @@ class FirestoreService {
       await _db.collection('pharmacy_requests').doc(requestId).delete();
     } catch (e) {
       throw 'Erreur lors de la suppression de la demande: $e';
+    }
+  }
+
+  // Initialiser la collection pharmacy_requests si elle n'existe pas
+  Future<void> initializePharmacyRequestsCollection() async {
+    try {
+      // Vérifier si la collection existe
+      QuerySnapshot snapshot = await _db.collection('pharmacy_requests').limit(1).get();
+      
+      if (snapshot.docs.isEmpty) {
+        // La collection n'existe pas, la créer avec un document temporaire
+        debugPrint('📋 Création de la collection pharmacy_requests...');
+        
+        DocumentReference tempDoc = await _db.collection('pharmacy_requests').add({
+          'temp': true,
+          'createdAt': FieldValue.serverTimestamp(),
+          'status': 'temp_document',
+          'note': 'Document temporaire pour initialiser la collection'
+        });
+        
+        // Supprimer immédiatement le document temporaire
+        await tempDoc.delete();
+        
+        debugPrint('✅ Collection pharmacy_requests initialisée');
+      } else {
+        debugPrint('✅ Collection pharmacy_requests existe déjà');
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur lors de l\'initialisation de pharmacy_requests: $e');
     }
   }
 

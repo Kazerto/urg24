@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider_simple.dart';
 import '../screens/user_type_login_screen.dart';
+import '../screens/client/client_dashboard.dart';
+import '../screens/admin/admin_dashboard.dart';
+import '../screens/pharmacy/pharmacy_dashboard.dart';
+import '../models/pharmacy_model.dart';
 import '../utils/constants.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -33,14 +39,76 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animationController.forward();
 
-    // Navigation vers la page de connexion après 2 secondes
-    Future.delayed(const Duration(seconds: 2), () {
+    // Vérifier l'authentification persistante après l'animation
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _checkAuthAndNavigate();
+      }
+    });
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    if (!mounted) return;
+    
+    try {
+      final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
+      
+      // Attendre l'animation et laisser du temps à Firebase de s'initialiser
+      await Future.delayed(const Duration(seconds: 2));
+      
+      debugPrint('🔍 Splash: Vérification de l\'authentification persistante...');
+      
+      // Vérifier l'authentification persistante
+      bool isAuthenticated = await authProvider.checkPersistedAuth();
+      
+      debugPrint('🔍 Splash: Résultat auth persistante: $isAuthenticated');
+      
+      if (!mounted) return;
+      
+      if (isAuthenticated && authProvider.userData != null) {
+        // Utilisateur déjà connecté, naviguer vers le dashboard approprié
+        _navigateToDashboard(authProvider.userType ?? '');
+      } else {
+        // Pas d'utilisateur connecté, aller à la page de connexion
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const UserTypeLoginScreen()),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la vérification auth: $e');
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const UserTypeLoginScreen()),
         );
       }
-    });
+    }
+  }
+  
+  void _navigateToDashboard(String userType) {
+    Widget destinationScreen;
+    
+    switch (userType.toLowerCase()) {
+      case 'client':
+        destinationScreen = const ClientDashboard();
+        break;
+      case 'admin':
+        destinationScreen = const AdminDashboardScreen();
+        break;
+      case 'pharmacy':
+        // Pour la pharmacie, il faut convertir les données en PharmacyModel
+        final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
+        final userData = authProvider.userData!;
+        final pharmacy = PharmacyModel.fromMap(userData, userData['uid'] ?? '');
+        destinationScreen = PharmacyDashboard(pharmacy: pharmacy);
+        break;
+      default:
+        // Type d'utilisateur non reconnu, retourner à la connexion
+        destinationScreen = const UserTypeLoginScreen();
+    }
+    
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => destinationScreen),
+    );
   }
 
   @override

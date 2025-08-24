@@ -103,11 +103,40 @@ class EmailService {
   // Envoyer les identifiants à une pharmacie approuvée
   Future<void> sendPharmacyCredentials(String email, String pharmacyName, String password) async {
     try {
-      // Dans une vraie application, vous enverriez un email sécurisé
-      print('Identifiants pour $pharmacyName ($email): mot de passe = $password');
+      print('📧 === IDENTIFIANTS PHARMACIE APPROUVÉE ===');
+      print('🏥 Pharmacie: $pharmacyName');
+      print('📧 Email: $email');
+      print('🔑 Mot de passe temporaire: $password');
+      print('⚠️  La pharmacie doit utiliser ces identifiants pour se connecter');
+      print('💡 Conseil: Demandez à la pharmacie de changer son mot de passe après la première connexion');
+      print('==========================================');
 
-      // TODO: Envoyer email avec les identifiants
-      // await _sendCredentialsEmail(email, pharmacyName, password);
+      // Simulation d'envoi d'email (pour développement)
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // TODO: Implémenter l'envoi réel d'email
+      /*
+      final message = '''
+Bonjour $pharmacyName,
+
+Félicitations ! Votre demande d'inscription sur la plateforme Urgence24 a été approuvée.
+
+Vos identifiants de connexion :
+- Email : $email  
+- Mot de passe temporaire : $password
+
+Instructions :
+1. Connectez-vous à l'application avec ces identifiants
+2. Changez votre mot de passe lors de votre première connexion
+3. Complétez votre profil pharmacie
+
+Bienvenue dans le réseau Urgence24 !
+
+L'équipe Urgence24
+      ''';
+      
+      await _sendEmail(email, 'Compte pharmacie approuvé - Urgence24', message);
+      */
 
     } catch (e) {
       throw 'Erreur lors de l\'envoi des identifiants: $e';

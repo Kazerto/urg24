@@ -29,10 +29,33 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>urgence24_new</title>
+  <title>Urgence 24 - Livraison de médicaments</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  
+  <!-- Firebase Configuration -->
+  <script>
+    // Votre configuration Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyD8rP_wBobhMVNxp-JPsVt0JDrYRPSL84U",
+      authDomain: "urgence24-1f259.firebaseapp.com",
+      databaseURL: "https://urgence24-1f259-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "urgence24-1f259",
+      storageBucket: "urgence24-1f259.firebasestorage.app",
+      messagingSenderId: "978563578729",
+      appId: "1:978563578729:web:6a6d8bebb248154ddc1bf8",
+      measurementId: "G-XT5NDLEG6G"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
