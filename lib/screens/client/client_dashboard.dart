@@ -18,18 +18,11 @@ class ClientDashboard extends StatelessWidget {
         backgroundColor: AppColors.primaryColor,
         foregroundColor: Colors.white,
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'logout') {
-                _logout(context);
-              }
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              // TODO: Refresh dashboard data
             },
-            itemBuilder: (BuildContext context) => [
-              const PopupMenuItem<String>(
-                value: 'logout',
-                child: Text('Déconnexion'),
-              ),
-            ],
           ),
         ],
       ),
@@ -248,35 +241,4 @@ class ClientDashboard extends StatelessWidget {
     );
   }
 
-  void _logout(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Déconnexion'),
-          content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
-                await authProvider.signOut();
-                if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/',
-                    (route) => false,
-                  );
-                }
-              },
-              child: const Text('Déconnexion'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }

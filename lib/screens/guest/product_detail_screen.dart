@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider_simple.dart';
 import '../../utils/constants.dart';
 import '../user_type_login_screen.dart';
 
@@ -477,7 +479,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: quantity > 0 ? () => _showLoginRequired(context) : null,
+                onPressed: quantity > 0 ? () => _handleOrderButtonPressed(context, pharmacy) : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: quantity > 0 ? AppColors.primaryColor : Colors.grey,
                   foregroundColor: Colors.white,
@@ -497,6 +499,40 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _handleOrderButtonPressed(BuildContext context, Map<String, dynamic> pharmacy) {
+    final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
+    
+    if (authProvider.isLoggedIn) {
+      // Utilisateur connecté, procéder à la commande
+      _processOrder(context, pharmacy);
+    } else {
+      // Utilisateur non connecté, demander la connexion
+      _showLoginRequired(context);
+    }
+  }
+  
+  void _processOrder(BuildContext context, Map<String, dynamic> pharmacy) {
+    // TODO: Implémenter le processus de commande
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Commande'),
+        content: Text(
+          'Fonctionnalité de commande en cours de développement.\n\n'
+          'Produit: ${widget.productName}\n'
+          'Pharmacie: ${pharmacy['pharmacyName']}\n'
+          'Prix: ${pharmacy['price']}€'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }

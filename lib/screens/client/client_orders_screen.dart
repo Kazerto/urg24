@@ -480,7 +480,7 @@ class _ClientOrdersScreenState extends State<ClientOrdersScreen> {
                     ...order.items.map((item) => ListTile(
                       title: Text(item.medicamentName),
                       subtitle: Text('Quantité: ${item.quantity}'),
-                      trailing: Text('${item.price.toStringAsFixed(2)}€'),
+                      trailing: Text('${item.unitPrice.toStringAsFixed(2)}€'),
                     )),
                     const Divider(),
                     ListTile(

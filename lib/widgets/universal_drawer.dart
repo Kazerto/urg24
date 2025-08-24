@@ -383,10 +383,20 @@ class UniversalDrawer extends StatelessWidget {
             child: const Text('Annuler'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context); // Fermer le dialog
               Navigator.pop(context); // Fermer le drawer
-              Provider.of<AuthProviderSimple>(context, listen: false).signOut();
+              
+              // Déconnexion
+              await Provider.of<AuthProviderSimple>(context, listen: false).signOut();
+              
+              // Redirection vers la page d'accueil
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/', // Route vers la page d'accueil (SplashScreen)
+                  (route) => false, // Supprimer toutes les routes précédentes
+                );
+              }
             },
             child: const Text('Déconnexion'),
           ),
