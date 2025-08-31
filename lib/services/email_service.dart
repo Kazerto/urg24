@@ -146,10 +146,35 @@ L'équipe Urgence24
   // Notifier un livreur de l'approbation de son compte
   Future<void> notifyDeliveryPersonApproval(String email, String fullName) async {
     try {
-      print('Compte livreur approuvé pour $fullName ($email)');
+      print('📧 === COMPTE LIVREUR APPROUVÉ ===');
+      print('🚴 Livreur: $fullName');
+      print('📧 Email: $email');
+      print('✅ Son compte est maintenant actif');
+      print('💡 Le livreur peut maintenant se connecter à l\'application');
+      print('==========================================');
 
-      // TODO: Envoyer email de notification
-      // await _sendApprovalEmail(email, fullName);
+      // Simulation d'envoi d'email (pour développement)
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // TODO: Implémenter l'envoi réel d'email
+      /*
+      final message = '''
+Bonjour $fullName,
+
+Excellente nouvelle ! Votre demande d'inscription comme livreur sur la plateforme Urgence24 a été approuvée.
+
+Votre compte est maintenant actif et vous pouvez :
+- Vous connecter à l'application avec vos identifiants
+- Recevoir des demandes de livraison
+- Commencer à effectuer des livraisons
+
+Bienvenue dans l'équipe Urgence24 !
+
+L'équipe Urgence24
+      ''';
+      
+      await _sendEmail(email, 'Compte livreur approuvé - Urgence24', message);
+      */
 
     } catch (e) {
       throw 'Erreur lors de la notification d\'approbation: $e';

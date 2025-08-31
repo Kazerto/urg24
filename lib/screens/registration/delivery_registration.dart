@@ -76,7 +76,12 @@ class _DeliveryRegistrationScreenState extends State<DeliveryRegistrationScreen>
           'createdAt': DateTime.now(),
         };
 
-        await authProvider.registerDeliveryPerson(userData);
+        // Utiliser la méthode registerDeliveryPerson corrigée
+        await authProvider.registerDeliveryPerson(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+          deliveryData: userData,
+        );
 
         if (mounted) {
           Navigator.of(context).pushReplacement(

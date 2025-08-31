@@ -15,6 +15,9 @@ class PharmacyModel {
   final DateTime createdAt;
   final DateTime? approvedAt;
   final String status;
+  final double? latitude;
+  final double? longitude;
+  final String? photoUrl;
 
   PharmacyModel({
     required this.id,
@@ -31,9 +34,12 @@ class PharmacyModel {
     required this.createdAt,
     this.approvedAt,
     this.status = 'pending_admin_approval',
+    this.latitude,
+    this.longitude,
+    this.photoUrl,
   });
 
-  // Factory constructor pour créer depuis Firestore
+  // Factory constructor pour crï¿½er depuis Firestore
   factory PharmacyModel.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     
@@ -52,10 +58,13 @@ class PharmacyModel {
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       approvedAt: data['approvedAt'] != null ? (data['approvedAt'] as Timestamp).toDate() : null,
       status: data['status'] ?? 'pending_admin_approval',
+      latitude: data['latitude']?.toDouble(),
+      longitude: data['longitude']?.toDouble(),
+      photoUrl: data['photoUrl'],
     );
   }
 
-  // Factory constructor pour créer depuis Map
+  // Factory constructor pour crï¿½er depuis Map
   factory PharmacyModel.fromMap(Map<String, dynamic> data, String id) {
     return PharmacyModel(
       id: id,
@@ -78,12 +87,16 @@ class PharmacyModel {
               : DateTime.parse(data['approvedAt']))
           : null,
       status: data['status'] ?? 'pending_admin_approval',
+      latitude: data['latitude']?.toDouble(),
+      longitude: data['longitude']?.toDouble(),
+      photoUrl: data['photoUrl'],
     );
   }
 
   // Convertir en Map pour Firestore
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'pharmacyName': pharmacyName,
       'email': email,
       'phoneNumber': phoneNumber,
@@ -97,10 +110,13 @@ class PharmacyModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'approvedAt': approvedAt != null ? Timestamp.fromDate(approvedAt!) : null,
       'status': status,
+      'latitude': latitude,
+      'longitude': longitude,
+      'photoUrl': photoUrl,
     };
   }
 
-  // CopyWith method pour créer une copie modifiée
+  // CopyWith method pour crï¿½er une copie modifiï¿½e
   PharmacyModel copyWith({
     String? id,
     String? pharmacyName,
@@ -116,6 +132,9 @@ class PharmacyModel {
     DateTime? createdAt,
     DateTime? approvedAt,
     String? status,
+    double? latitude,
+    double? longitude,
+    String? photoUrl,
   }) {
     return PharmacyModel(
       id: id ?? this.id,
@@ -132,6 +151,9 @@ class PharmacyModel {
       createdAt: createdAt ?? this.createdAt,
       approvedAt: approvedAt ?? this.approvedAt,
       status: status ?? this.status,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      photoUrl: photoUrl ?? this.photoUrl,
     );
   }
 

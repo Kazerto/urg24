@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/firestore_service.dart';
 import '../../services/email_service.dart';
 import '../../utils/constants.dart';
@@ -191,7 +192,19 @@ class _DeliveryApprovalsScreenState extends State<DeliveryApprovalsScreen> {
   }
 
   Widget _buildDeliveryPersonCard(Map<String, dynamic> deliveryPerson) {
-    DateTime createdAt = deliveryPerson['createdAt']?.toDate() ?? DateTime.now();
+    DateTime createdAt;
+    try {
+      final createdAtValue = deliveryPerson['createdAt'];
+      if (createdAtValue is Timestamp) {
+        createdAt = createdAtValue.toDate();
+      } else if (createdAtValue is DateTime) {
+        createdAt = createdAtValue;
+      } else {
+        createdAt = DateTime.now();
+      }
+    } catch (e) {
+      createdAt = DateTime.now();
+    }
     String timeAgo = _getTimeAgo(createdAt);
 
     return Card(
@@ -211,7 +224,7 @@ class _DeliveryApprovalsScreenState extends State<DeliveryApprovalsScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryColor.withValues(alpha: 0.1),
+                    color: AppColors.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -255,7 +268,7 @@ class _DeliveryApprovalsScreenState extends State<DeliveryApprovalsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.warningColor.withValues(alpha: 0.1),
+                    color: AppColors.warningColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

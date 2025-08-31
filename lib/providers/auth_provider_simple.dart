@@ -220,26 +220,57 @@ class AuthProviderSimple with ChangeNotifier {
     }
   }
 
-  // Inscription spécifique livreur (sans créer de compte Firebase Auth)
-  Future<String> registerDeliveryPerson(Map<String, dynamic> deliveryData) async {
+  // Inscription spécifique livreur (avec compte Firebase Auth et vérification email)
+  Future<String> registerDeliveryPerson({
+    required String email,
+    required String password,
+    required Map<String, dynamic> deliveryData,
+  }) async {
     _setLoading(true);
     try {
-      // Ajouter les métadonnées
+      debugPrint('🔍 Début inscription livreur pour: $email');
+      
+      // 1. Créer le compte Firebase Auth et récupérer l'UID avant déconnexion
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      String uid = userCredential.user!.uid;
+      debugPrint('✅ Compte Firebase Auth créé avec UID: $uid');
+
+      // 2. Ajouter les métadonnées spécifiques aux livreurs
       deliveryData['userType'] = UserTypes.deliveryPerson;
       deliveryData['createdAt'] = DateTime.now();
-      deliveryData['status'] = 'pending_approval';
+      deliveryData['status'] = 'pending_verification'; // D'abord vérification email
       deliveryData['isVerified'] = false;
       deliveryData['isApproved'] = false;
+      deliveryData['uid'] = uid;
+      deliveryData['email'] = email;
 
-      // Sauvegarder directement dans delivery_persons (pas d'auth Firebase)
+      // 3. Sauvegarder dans users via le service d'auth
+      String verificationCode = await _authService.registerUser(
+        email: email,
+        password: password,
+        userData: deliveryData,
+      );
+
+      debugPrint('✅ Email de vérification envoyé');
+
+      // 4. Sauvegarder aussi dans delivery_persons pour référence admin
       await FirebaseFirestore.instance
           .collection('delivery_persons')
-          .add(deliveryData);
+          .add({
+            ...deliveryData,
+            'firebaseUid': uid,
+          });
 
-      // Notifier l'admin
+      debugPrint('✅ Données livreur sauvées dans delivery_persons');
+
+      // 5. Notifier l'admin
       await _authService.notifyAdminDeliveryRequest(deliveryData);
 
-      return 'pending'; // Code de vérification fictif
+      return verificationCode;
     } finally {
       _setLoading(false);
     }

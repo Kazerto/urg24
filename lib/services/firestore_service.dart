@@ -134,15 +134,34 @@ class FirestoreService {
   // Approuver un livreur (pour l'admin)
   Future<void> approveDeliveryPerson(String uid) async {
     try {
+      debugPrint('🔍 Début approbation livreur UID: $uid');
+      
       Map<String, dynamic> updateData = {
         'isApproved': true,
         'status': 'active',
-        'approvedAt': DateTime.now(),
+        'approvedAt': FieldValue.serverTimestamp(),
       };
 
+      // Mettre à jour le document principal dans users
       await _db.collection('users').doc(uid).update(updateData);
-      await _db.collection('delivery_persons').doc(uid).update(updateData);
+      debugPrint('✅ Document users mis à jour');
+
+      // Trouver et mettre à jour le document correspondant dans delivery_persons
+      QuerySnapshot deliveryPersonDocs = await _db
+          .collection('delivery_persons')
+          .where('firebaseUid', isEqualTo: uid)
+          .limit(1)
+          .get();
+          
+      if (deliveryPersonDocs.docs.isNotEmpty) {
+        await deliveryPersonDocs.docs.first.reference.update(updateData);
+        debugPrint('✅ Document delivery_persons mis à jour');
+      } else {
+        debugPrint('⚠️ Aucun document delivery_persons trouvé pour UID: $uid');
+      }
+      
     } catch (e) {
+      debugPrint('❌ Erreur approbation livreur: $e');
       throw 'Erreur lors de l\'approbation: $e';
     }
   }

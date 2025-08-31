@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../providers/auth_provider_simple.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
@@ -24,10 +25,13 @@ class _PharmacyRegistrationScreenState extends State<PharmacyRegistrationScreen>
   final _addressController = TextEditingController();
   final _licenseNumberController = TextEditingController();
   final _openingHoursController = TextEditingController();
+  final _latitudeController = TextEditingController();
+  final _longitudeController = TextEditingController();
 
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  bool _isGettingLocation = false;
 
   @override
   void dispose() {
@@ -39,6 +43,8 @@ class _PharmacyRegistrationScreenState extends State<PharmacyRegistrationScreen>
     _addressController.dispose();
     _licenseNumberController.dispose();
     _openingHoursController.dispose();
+    _latitudeController.dispose();
+    _longitudeController.dispose();
     super.dispose();
   }
 
@@ -59,6 +65,8 @@ class _PharmacyRegistrationScreenState extends State<PharmacyRegistrationScreen>
           'address': _addressController.text.trim(),
           'licenseNumber': _licenseNumberController.text.trim(),
           'openingHours': _openingHoursController.text.trim(),
+          'latitude': _latitudeController.text.isNotEmpty ? double.tryParse(_latitudeController.text.trim()) : null,
+          'longitude': _longitudeController.text.isNotEmpty ? double.tryParse(_longitudeController.text.trim()) : null,
           'userType': UserTypes.pharmacy,
           'isVerified': false,
           'isApproved': false,
@@ -90,6 +98,79 @@ class _PharmacyRegistrationScreenState extends State<PharmacyRegistrationScreen>
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() {
+      _isGettingLocation = true;
+    });
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Les services de localisation sont désactivés. Veuillez les activer dans les paramètres.'),
+            backgroundColor: AppColors.errorColor,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Permission de localisation refusée'),
+              backgroundColor: AppColors.errorColor,
+            ),
+          );
+          return;
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permission de localisation refusée de manière permanente. Veuillez l\'activer dans les paramètres.'),
+            backgroundColor: AppColors.errorColor,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+      
+      setState(() {
+        _latitudeController.text = position.latitude.toStringAsFixed(6);
+        _longitudeController.text = position.longitude.toStringAsFixed(6);
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Position récupérée avec succès !'),
+          backgroundColor: AppColors.successColor,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la récupération de la position: $e'),
+          backgroundColor: AppColors.errorColor,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isGettingLocation = false;
+      });
     }
   }
 
@@ -233,6 +314,177 @@ class _PharmacyRegistrationScreenState extends State<PharmacyRegistrationScreen>
                   hintText: 'Ex: 08:00 - 18:00',
                   prefixIcon: Icons.access_time_outlined,
                   validator: Validators.validateOpeningHours,
+                ),
+                const SizedBox(height: AppDimensions.paddingMedium),
+
+                // Section coordonnées géographiques
+                Container(
+                  padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryColor.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
+                    border: Border.all(
+                      color: AppColors.primaryColor.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            color: AppColors.primaryColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Coordonnées géographiques (optionnel)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Ces coordonnées permettront aux clients de vous localiser plus facilement',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.paddingMedium),
+
+                      // Bouton pour récupérer la position actuelle
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: AppDimensions.paddingMedium),
+                        child: ElevatedButton.icon(
+                          onPressed: _isGettingLocation ? null : _getCurrentLocation,
+                          icon: _isGettingLocation
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.my_location, size: 18),
+                          label: Text(
+                            _isGettingLocation 
+                                ? 'Récupération en cours...' 
+                                : 'Utiliser ma position actuelle'
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Séparateur avec "OU"
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color: Colors.grey[300],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'OU',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color: Colors.grey[300],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppDimensions.paddingMedium),
+                      
+                      // Latitude
+                      CustomTextField(
+                        controller: _latitudeController,
+                        label: 'Latitude',
+                        hintText: 'Ex: 6.1319',
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        prefixIcon: Icons.place_outlined,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            final lat = double.tryParse(value);
+                            if (lat == null || lat < -90 || lat > 90) {
+                              return 'Latitude invalide (doit être entre -90 et 90)';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppDimensions.paddingMedium),
+
+                      // Longitude
+                      CustomTextField(
+                        controller: _longitudeController,
+                        label: 'Longitude',
+                        hintText: 'Ex: 1.2123',
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        prefixIcon: Icons.place_outlined,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            final lng = double.tryParse(value);
+                            if (lng == null || lng < -180 || lng > 180) {
+                              return 'Longitude invalide (doit être entre -180 et 180)';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppDimensions.paddingMedium),
+
+                      // Note d'aide
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.blue,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Conseil : Utilisez le bouton "Ma position actuelle" si vous êtes actuellement dans votre pharmacie, ou saisissez manuellement les coordonnées obtenues via Google Maps.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue[700],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: AppDimensions.paddingLarge),
 

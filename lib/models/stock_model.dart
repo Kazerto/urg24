@@ -16,6 +16,7 @@ class StockModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isActive;
+  final String? photoUrl;
 
   StockModel({
     required this.id,
@@ -33,6 +34,7 @@ class StockModel {
     required this.createdAt,
     required this.updatedAt,
     this.isActive = true,
+    this.photoUrl,
   });
 
   factory StockModel.fromFirestore(DocumentSnapshot doc) {
@@ -54,6 +56,7 @@ class StockModel {
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
       isActive: data['isActive'] ?? true,
+      photoUrl: data['photoUrl'],
     );
   }
 
@@ -80,6 +83,7 @@ class StockModel {
           ? (data['updatedAt'] as Timestamp).toDate()
           : DateTime.parse(data['updatedAt']),
       isActive: data['isActive'] ?? true,
+      photoUrl: data['photoUrl'],
     );
   }
 
@@ -99,6 +103,7 @@ class StockModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'isActive': isActive,
+      'photoUrl': photoUrl,
     };
   }
 
@@ -118,6 +123,7 @@ class StockModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isActive,
+    String? photoUrl,
   }) {
     return StockModel(
       id: id ?? this.id,
@@ -135,6 +141,7 @@ class StockModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
+      photoUrl: photoUrl ?? this.photoUrl,
     );
   }
 

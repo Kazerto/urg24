@@ -4,6 +4,9 @@ import '../../providers/auth_provider_simple.dart';
 import '../../widgets/universal_drawer.dart';
 import '../guest/categories_browser_screen.dart';
 import 'client_orders_screen.dart';
+import 'teleconseil_screen.dart';
+import 'prescription_scanner_screen.dart';
+import 'pharmacy_selection_screen.dart';
 import '../../utils/constants.dart';
 
 class ClientDashboard extends StatelessWidget {
@@ -140,6 +143,7 @@ class ClientDashboard extends StatelessWidget {
                   crossAxisCount: 2,
                   crossAxisSpacing: AppDimensions.paddingMedium,
                   mainAxisSpacing: AppDimensions.paddingMedium,
+                  childAspectRatio: 1.4,
                   children: [
                     _buildActionCard(
                       icon: Icons.medication,
@@ -150,7 +154,7 @@ class ClientDashboard extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const CategoriesBrowserScreen(),
+                            builder: (context) => const PharmacySelectionScreen(),
                           ),
                         );
                       },
@@ -170,15 +174,29 @@ class ClientDashboard extends StatelessWidget {
                       },
                     ),
                     _buildActionCard(
-                      icon: Icons.local_pharmacy,
-                      title: 'Pharmacies\npartenaires',
-                      subtitle: 'Près de vous',
-                      color: AppColors.successColor,
+                      icon: Icons.headset_mic,
+                      title: 'Téléconseil',
+                      subtitle: 'Aide & Support',
+                      color: Colors.teal,
                       onTap: () {
-                        // TODO: Naviguer vers les pharmacies
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Fonctionnalité en développement'),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TeleConseilScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildActionCard(
+                      icon: Icons.camera_alt,
+                      title: 'Scanner\nordonnance',
+                      subtitle: 'Photo',
+                      color: Colors.indigo,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PrescriptionScannerScreen(),
                           ),
                         );
                       },
@@ -223,32 +241,41 @@ class ClientDashboard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
         child: Padding(
-          padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                size: 40,
+                size: 32,
                 color: color,
               ),
-              const SizedBox(height: AppDimensions.paddingSmall),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const SizedBox(height: 6),
+              Flexible(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
+              const SizedBox(height: 2),
+              Flexible(
+                child: Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

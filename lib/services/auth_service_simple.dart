@@ -48,7 +48,14 @@ class AuthServiceSimple {
       await _emailService.sendVerificationCode(email);
       String verificationCode = 'envoyé par email'; // Le code est maintenant géré par EmailService
 
-      // 5. Déconnecter temporairement
+      // 5. Mettre à jour le statut à pending_verification
+      await _firestore.collection('users').doc(uid).update({
+        'status': 'pending_verification',
+        'emailVerificationSent': true,
+        'emailSentAt': FieldValue.serverTimestamp(),
+      });
+
+      // 6. Déconnecter temporairement
       await _auth.signOut();
       
       return verificationCode;
@@ -103,28 +110,49 @@ class AuthServiceSimple {
       // 3. Vérifier le statut selon le type d'utilisateur
       String status = userData['status']?.toString() ?? '';
       String userType = userData['userType']?.toString() ?? '';
+      bool isVerified = userData['isVerified'] == true;
       
-      if (status == 'pending_verification') {
+      debugPrint('🔍 Statut utilisateur: $status, Vérifié: $isVerified, Type: $userType');
+      
+      // Vérification email obligatoire pour tous les types d'utilisateur
+      if (status == 'pending_verification' && !isVerified) {
         await _auth.signOut();
         if (userType == 'pharmacy_request') {
           throw 'Votre demande de pharmacie doit d\'abord être vérifiée par email. Vérifiez votre boîte email.';
         }
-        throw 'Compte non vérifié. Vérifiez votre email.';
+        throw 'Compte non vérifié. Vérifiez votre email avec le code reçu.';
       }
       
-      if (status == 'pending_approval' || status == 'pending_admin_approval') {
-        await _auth.signOut();
-        if (userType == 'pharmacy_request') {
-          throw 'Votre demande de pharmacie est en cours de traitement. Vous recevrez une confirmation par email une fois approuvée par l\'administration.';
+      // Vérification du statut pour les différents types d'utilisateur
+      if (userType == 'client') {
+        // Les clients peuvent se connecter dès que leur email est vérifié
+        if (!isVerified) {
+          await _auth.signOut();
+          throw 'Compte non vérifié. Vérifiez votre email avec le code reçu.';
         }
-        throw 'Compte en attente d\'approbation par l\'administration.';
+      } else if (userType == 'delivery_person' || userType == 'pharmacy') {
+        // Livreurs et pharmacies ont besoin d'approbation admin après vérification email
+        if (status == 'pending_approval' || status == 'pending_admin_approval') {
+          await _auth.signOut();
+          if (userType == 'pharmacy') {
+            throw 'Votre compte pharmacie est en attente d\'approbation par l\'administration.';
+          } else {
+            throw 'Votre compte livreur est en attente d\'approbation par l\'administration.';
+          }
+        }
+        
+        if (status != 'active') {
+          await _auth.signOut();
+          throw 'Compte non actif. Contactez l\'administration.';
+        }
+      } else if (userType == 'pharmacy_request') {
+        await _auth.signOut();
+        throw 'Votre demande de pharmacie est en cours de traitement. Vous recevrez une confirmation par email une fois approuvée par l\'administration.';
       }
       
-      if (status != 'active') {
+      // Vérification finale du statut actif pour tous sauf clients vérifiés
+      if (userType != 'client' && status != 'active') {
         await _auth.signOut();
-        if (userType == 'pharmacy_request') {
-          throw 'Votre demande de pharmacie n\'a pas encore été approuvée. Contactez l\'administration si nécessaire.';
-        }
         throw 'Compte non actif. Contactez l\'administration.';
       }
 
@@ -169,9 +197,17 @@ class AuthServiceSimple {
       Map<String, dynamic> userData = SafeFirestoreHelper.safeDocumentData(userDoc);
 
       // 3. Mettre à jour le statut selon le type d'utilisateur
-      String newStatus = 'active';
+      String newStatus = 'active'; // Client peut se connecter directement
+      
       if (userData['userType'] == 'delivery_person') {
         newStatus = 'pending_approval'; // Livreur doit être approuvé par admin
+        
+        // Notifier l'admin du nouveau livreur vérifié
+        try {
+          await notifyAdminDeliveryRequest(userData);
+        } catch (e) {
+          debugPrint('Erreur notification admin livreur: $e');
+        }
       } else if (userData['userType'] == 'pharmacy') {
         newStatus = 'pending_approval'; // Pharmacie doit être approuvée par admin
         
@@ -185,6 +221,8 @@ class AuthServiceSimple {
         // Cas spécial : demande de pharmacie, mettre à jour dans pharmacy_requests
         await _verifyPharmacyRequest(email);
         return;
+      } else if (userData['userType'] == 'client') {
+        newStatus = 'active'; // Client peut se connecter immédiatement après vérification
       }
 
       await userDoc.reference.update({

@@ -5,6 +5,7 @@ import '../../models/pharmacy_model.dart';
 import '../../models/order_model.dart';
 import '../../models/stock_model.dart';
 import '../../utils/constants.dart';
+import 'pharmacy_order_management_screen.dart';
 
 class PharmacyDashboard extends StatefulWidget {
   final PharmacyModel pharmacy;
@@ -66,7 +67,7 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
   Future<void> _loadStockStats() async {
     try {
       final stockQuery = await FirebaseFirestore.instance
-          .collection('stocks')
+          .collection('stock')
           .where('pharmacyId', isEqualTo: widget.pharmacy.id)
           .where('isActive', isEqualTo: true)
           .get();
@@ -107,7 +108,7 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
   Future<void> _loadLowStockProducts() async {
     try {
       final stockQuery = await FirebaseFirestore.instance
-          .collection('stocks')
+          .collection('stock')
           .where('pharmacyId', isEqualTo: widget.pharmacy.id)
           .where('isActive', isEqualTo: true)
           .get();
@@ -272,7 +273,8 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
           ],
         ),
         const SizedBox(height: 16),
-        _buildRevenueCard(),
+        // TODO: Section chiffre d'affaires temporairement commentée
+        // _buildRevenueCard(),
       ],
     );
   }
@@ -321,6 +323,8 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
     );
   }
 
+  // TODO: Section chiffre d'affaires temporairement commentée
+  /*
   Widget _buildRevenueCard() {
     return Card(
       elevation: 3,
@@ -359,6 +363,7 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
       ),
     );
   }
+  */
 
   Widget _buildQuickActions() {
     return Column(
@@ -394,10 +399,11 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
               'Commandes',
               Icons.receipt_long,
               Colors.green,
-              () => Navigator.pushNamed(
-                context, 
-                '/pharmacy/orders',
-                arguments: {'pharmacy': widget.pharmacy}
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PharmacyOrderManagementScreen(pharmacy: widget.pharmacy),
+                ),
               ),
             ),
             _buildQuickActionCard(

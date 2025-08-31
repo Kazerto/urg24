@@ -12,6 +12,7 @@ import 'client/client_dashboard.dart';
 import 'admin/admin_dashboard.dart';
 import 'admin/sync_admin_screen.dart';
 import 'pharmacy/pharmacy_dashboard.dart';
+import 'delivery/delivery_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -97,11 +98,8 @@ class _LoginScreenState extends State<LoginScreen> {
               await _navigateToPharmacyDashboard(authProvider);
               break;
             case 'delivery_person':
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Interface livreur en développement'),
-                  backgroundColor: AppColors.primaryColor,
-                ),
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const DeliveryDashboardScreen()),
               );
               break;
             default:

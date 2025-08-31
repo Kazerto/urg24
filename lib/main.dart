@@ -10,6 +10,7 @@ import 'screens/pharmacy/stock_management_screen.dart';
 import 'screens/pharmacy/orders_management_screen.dart';
 import 'screens/pharmacy/partners_management_screen.dart';
 import 'providers/auth_provider_simple.dart';
+import 'providers/cart_provider.dart';
 import 'services/firestore_service.dart';
 import 'config/email_config.dart';
 import 'utils/constants.dart';
@@ -86,6 +87,7 @@ class DeliveryApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProviderSimple()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: MaterialApp(
         title: 'Delivery App',
