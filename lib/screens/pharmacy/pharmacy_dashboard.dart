@@ -27,6 +27,9 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
   double totalRevenue = 0.0;
   List<OrderModel> recentOrders = [];
   List<StockModel> lowStockProducts = [];
+  
+  // Variables pour le double-tap pour sortir
+  DateTime? _lastBackPress;
 
   @override
   void initState() {
@@ -127,8 +130,21 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Fermer l'application au lieu de revenir aux écrans de login
-        return true; // Permet la sortie de l'app
+        // Double-tap pour sortir de l'application
+        final currentTime = DateTime.now();
+        if (_lastBackPress == null || 
+            currentTime.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+          _lastBackPress = currentTime;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Appuyez encore une fois pour quitter'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return false; // Ne pas quitter encore
+        }
+        return true; // Quitter l'app après le second tap
       },
       child: Scaffold(
       appBar: AppBar(

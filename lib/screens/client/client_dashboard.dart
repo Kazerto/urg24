@@ -9,15 +9,35 @@ import 'prescription_scanner_screen.dart';
 import 'pharmacy_selection_screen.dart';
 import '../../utils/constants.dart';
 
-class ClientDashboard extends StatelessWidget {
+class ClientDashboard extends StatefulWidget {
   const ClientDashboard({super.key});
+
+  @override
+  State<ClientDashboard> createState() => _ClientDashboardState();
+}
+
+class _ClientDashboardState extends State<ClientDashboard> {
+  DateTime? _lastBackPress;
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Fermer l'application au lieu de revenir aux écrans de login
-        return true; // Permet la sortie de l'app
+        // Double-tap pour sortir de l'application
+        final currentTime = DateTime.now();
+        if (_lastBackPress == null || 
+            currentTime.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+          _lastBackPress = currentTime;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Appuyez encore une fois pour quitter'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return false; // Ne pas quitter encore
+        }
+        return true; // Quitter l'app après le second tap
       },
       child: Scaffold(
       backgroundColor: AppColors.backgroundColor,

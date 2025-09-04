@@ -71,6 +71,9 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
         _isLoading = false;
       });
 
+      // Déduire le stock des produits commandés
+      await _deductStockFromPharmacy(widget.orderData['items'], widget.orderData['pharmacy']['id']);
+
       // Vider le panier après confirmation
       cartProvider.clearCart();
 
@@ -504,5 +507,55 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
         ),
       ],
     );
+  }
+
+  /// Déduit les quantités commandées du stock de la pharmacie
+  Future<void> _deductStockFromPharmacy(List<dynamic> items, String pharmacyId) async {
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (final item in items) {
+        final medicamentId = item['medicamentId'];
+        final quantityOrdered = item['quantity'] as int;
+
+        // Récupérer le document de stock correspondant
+        final stockQuery = await FirebaseFirestore.instance
+            .collection('stock')
+            .where('medicamentId', isEqualTo: medicamentId)
+            .where('pharmacyId', isEqualTo: pharmacyId)
+            .where('isActive', isEqualTo: true)
+            .limit(1)
+            .get();
+
+        if (stockQuery.docs.isNotEmpty) {
+          final stockDoc = stockQuery.docs.first;
+          final stockData = stockDoc.data();
+          final currentQuantity = stockData['quantity'] as int;
+          final newQuantity = currentQuantity - quantityOrdered;
+
+          // S'assurer que la quantité ne devient pas négative
+          final finalQuantity = newQuantity < 0 ? 0 : newQuantity;
+
+          // Ajouter la mise à jour au batch
+          batch.update(stockDoc.reference, {
+            'quantity': finalQuantity,
+            'lastUpdated': Timestamp.now(),
+          });
+
+          debugPrint('Stock mis à jour pour ${item['medicamentName']}: $currentQuantity -> $finalQuantity');
+        } else {
+          debugPrint('Aucun stock trouvé pour le médicament ID: $medicamentId');
+        }
+      }
+
+      // Exécuter toutes les mises à jour en une seule transaction
+      await batch.commit();
+      debugPrint('Déduction de stock terminée avec succès');
+
+    } catch (e) {
+      debugPrint('Erreur lors de la déduction du stock: $e');
+      // Ne pas faire échouer la commande si la déduction de stock échoue
+      // On pourrait ajouter une notification à l'admin ici
+    }
   }
 }

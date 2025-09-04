@@ -21,6 +21,7 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  DateTime? _lastBackPress;
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +29,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     return WillPopScope(
       onWillPop: () async {
-        // Fermer l'application au lieu de revenir aux écrans de login
-        return true; // Permet la sortie de l'app
+        // Double-tap pour sortir de l'application
+        final currentTime = DateTime.now();
+        if (_lastBackPress == null || 
+            currentTime.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+          _lastBackPress = currentTime;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Appuyez encore une fois pour quitter'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return false; // Ne pas quitter encore
+        }
+        return true; // Quitter l'app après le second tap
       },
       child: Scaffold(
       backgroundColor: AppColors.backgroundColor,
