@@ -125,7 +125,12 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Fermer l'application au lieu de revenir aux écrans de login
+        return true; // Permet la sortie de l'app
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text('Tableau de bord - ${widget.pharmacy.pharmacyName}'),
         backgroundColor: AppColors.primaryColor,
@@ -182,6 +187,7 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
         child: const Icon(Icons.add, color: Colors.white),
         tooltip: 'Ajouter un médicament',
       ),
+      ), // Ferme WillPopScope
     );
   }
 
@@ -238,39 +244,49 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
           ),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.2,
-          children: [
-            _buildStatCard(
-              'Commandes totales',
-              totalOrders.toString(),
-              Icons.receipt_long,
-              Colors.blue,
-            ),
-            _buildStatCard(
-              'Commandes en attente',
-              pendingOrders.toString(),
-              Icons.pending,
-              Colors.orange,
-            ),
-            _buildStatCard(
-              'Produits en stock',
-              totalStock.toString(),
-              Icons.inventory,
-              Colors.green,
-            ),
-            _buildStatCard(
-              'Stock faible',
-              lowStockItems.toString(),
-              Icons.warning,
-              Colors.red,
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculer le nombre de colonnes selon la largeur d'écran
+            final screenWidth = constraints.maxWidth;
+            final crossAxisCount = screenWidth > 600 ? 4 : 2;
+            final itemWidth = (screenWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
+            final itemHeight = itemWidth * 0.85; // Ratio adaptatif
+            
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: itemWidth / itemHeight,
+              children: [
+                _buildStatCard(
+                  'Commandes totales',
+                  totalOrders.toString(),
+                  Icons.receipt_long,
+                  Colors.blue,
+                ),
+                _buildStatCard(
+                  'Commandes en attente',
+                  pendingOrders.toString(),
+                  Icons.pending,
+                  Colors.orange,
+                ),
+                _buildStatCard(
+                  'Produits en stock',
+                  totalStock.toString(),
+                  Icons.inventory,
+                  Colors.green,
+                ),
+                _buildStatCard(
+                  'Stock faible',
+                  lowStockItems.toString(),
+                  Icons.warning,
+                  Colors.red,
+                ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 16),
         // TODO: Section chiffre d'affaires temporairement commentée
@@ -282,37 +298,60 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Card(
       elevation: 3,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: color.withOpacity(0.1),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Icon(icon, size: 36, color: color),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Calculer les tailles en fonction de la largeur disponible
+          final cardWidth = constraints.maxWidth;
+          final iconSize = (cardWidth * 0.25).clamp(24.0, 40.0);
+          final valueFontSize = (cardWidth * 0.15).clamp(18.0, 28.0);
+          final titleFontSize = (cardWidth * 0.08).clamp(10.0, 14.0);
+          
+          return Container(
+            padding: EdgeInsets.all(cardWidth * 0.08),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: color.withOpacity(0.1),
             ),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Flexible(
+                  flex: 2,
+                  child: Icon(icon, size: iconSize, color: color),
+                ),
+                Flexible(
+                  flex: 2,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: valueFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                ),
+                Flexible(
+                  flex: 2,
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: titleFontSize,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -371,14 +410,21 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
           ),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 3,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1,
-          children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final screenWidth = constraints.maxWidth;
+            final crossAxisCount = screenWidth > 600 ? 4 : 3;
+            final itemWidth = (screenWidth - (crossAxisCount - 1) * 12) / crossAxisCount;
+            final itemHeight = itemWidth; // Actions carrées
+            
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: itemWidth / itemHeight,
+              children: [
             _buildQuickActionCard(
               'Stock',
               Icons.inventory,
@@ -410,7 +456,9 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
                 arguments: {'pharmacy': widget.pharmacy}
               ),
             ),
-          ],
+              ],
+            );
+          },
         ),
       ],
     );

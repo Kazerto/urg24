@@ -14,7 +14,12 @@ class ClientDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Fermer l'application au lieu de revenir aux écrans de login
+        return true; // Permet la sortie de l'app
+      },
+      child: Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
         title: Row(
@@ -139,12 +144,19 @@ class ClientDashboard extends StatelessWidget {
 
               // Grille d'actions
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: AppDimensions.paddingMedium,
-                  mainAxisSpacing: AppDimensions.paddingMedium,
-                  childAspectRatio: 1.4,
-                  children: [
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final screenWidth = constraints.maxWidth;
+                    final crossAxisCount = screenWidth > 600 ? 3 : 2;
+                    final itemWidth = (screenWidth - (crossAxisCount - 1) * AppDimensions.paddingMedium) / crossAxisCount;
+                    final itemHeight = itemWidth * 0.8; // Ratio adaptatif pour les cartes d'action
+                    
+                    return GridView.count(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: AppDimensions.paddingMedium,
+                      mainAxisSpacing: AppDimensions.paddingMedium,
+                      childAspectRatio: itemWidth / itemHeight,
+                      children: [
                     _buildActionCard(
                       icon: Icons.medication,
                       title: 'Commander\nmédicaments',
@@ -215,13 +227,16 @@ class ClientDashboard extends StatelessWidget {
                         );
                       },
                     ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
           ),
         ),
       ),
+      ), // Ferme WillPopScope
     );
   }
 

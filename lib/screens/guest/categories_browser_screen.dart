@@ -126,13 +126,20 @@ class CategoriesBrowserScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 Expanded(
-                  child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 1.2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final screenWidth = constraints.maxWidth;
+                      final crossAxisCount = screenWidth > 600 ? 3 : 2;
+                      final itemWidth = (screenWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
+                      final itemHeight = itemWidth * 0.85;
+                      
+                      return GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          childAspectRatio: itemWidth / itemHeight,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
                     itemCount: categories.length,
                     itemBuilder: (context, index) {
                       String category = categories[index];
@@ -144,6 +151,8 @@ class CategoriesBrowserScreen extends StatelessWidget {
                         category: category,
                         productCount: productCount,
                         imageUrl: imageUrl,
+                      );
+                        },
                       );
                     },
                   ),

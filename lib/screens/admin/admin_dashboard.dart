@@ -26,7 +26,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProviderSimple>(context);
 
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Fermer l'application au lieu de revenir aux écrans de login
+        return true; // Permet la sortie de l'app
+      },
+      child: Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
         title: Row(
@@ -319,6 +324,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ],
         ),
       ),
+      ), // Ferme WillPopScope
     );
   }
 

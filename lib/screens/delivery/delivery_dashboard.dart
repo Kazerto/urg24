@@ -144,7 +144,12 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Fermer l'application au lieu de revenir aux écrans de login
+        return true; // Permet la sortie de l'app
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text('Tableau de bord - ${widget.deliveryPerson.fullName}'),
         backgroundColor: AppColors.primaryColor,
@@ -197,6 +202,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
           ),
         ),
       ),
+      ), // Ferme WillPopScope
     );
   }
 

@@ -44,10 +44,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (pharmacyData != null) {
         final pharmacy = PharmacyModel.fromMap(pharmacyData, pharmacyData['id'] ?? '');
         
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => PharmacyDashboard(pharmacy: pharmacy),
           ),
+          (route) => false, // Supprime toutes les routes précédentes
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -85,21 +86,24 @@ class _LoginScreenState extends State<LoginScreen> {
           final userType = authProvider.userType;
           switch (userType) {
             case 'client':
-              Navigator.of(context).pushReplacement(
+              Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const ClientDashboard()),
+                (route) => false, // Supprime toutes les routes précédentes
               );
               break;
             case 'admin':
-              Navigator.of(context).pushReplacement(
+              Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+                (route) => false, // Supprime toutes les routes précédentes
               );
               break;
             case 'pharmacy':
               await _navigateToPharmacyDashboard(authProvider);
               break;
             case 'delivery_person':
-              Navigator.of(context).pushReplacement(
+              Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const DeliveryDashboardScreen()),
+                (route) => false, // Supprime toutes les routes précédentes
               );
               break;
             default:

@@ -106,8 +106,9 @@ class _SplashScreenState extends State<SplashScreen>
         destinationScreen = const UserTypeLoginScreen();
     }
     
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => destinationScreen),
+      (route) => false, // Supprime toutes les routes précédentes
     );
   }
 
