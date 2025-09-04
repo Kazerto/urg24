@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/pharmacy_model.dart';
 import '../../models/order_model.dart';
 import '../../utils/constants.dart';
@@ -355,13 +356,13 @@ class _PharmacyOrderManagementScreenState extends State<PharmacyOrderManagementS
                   ),
                   const SizedBox(width: AppDimensions.paddingSmall),
                   IconButton(
-                    onPressed: () {
-                      // TODO: Contact client
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Fonctionnalité en développement')),
-                      );
-                    },
+                    onPressed: () => _callClient(order),
                     icon: const Icon(Icons.phone),
+                    color: Colors.green,
+                  ),
+                  IconButton(
+                    onPressed: () => _sendSMS(order),
+                    icon: const Icon(Icons.sms),
                     color: AppColors.primaryColor,
                   ),
                 ],
@@ -516,6 +517,72 @@ class _PharmacyOrderManagementScreenState extends State<PharmacyOrderManagementS
       return 'Hier ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     } else {
       return '${date.day}/${date.month} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    }
+  }
+
+  Future<void> _callClient(OrderModel order) async {
+    final phoneNumber = order.clientPhone;
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      try {
+        final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+        if (await canLaunchUrl(phoneUri)) {
+          await launchUrl(phoneUri);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d\'ouvrir l\'application téléphone'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de l\'appel: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Numéro de téléphone non disponible')),
+      );
+    }
+  }
+
+  Future<void> _sendSMS(OrderModel order) async {
+    final phoneNumber = order.clientPhone;
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      try {
+        final Uri smsUri = Uri(
+          scheme: 'sms',
+          path: phoneNumber,
+          queryParameters: {
+            'body': 'Bonjour, concernant votre commande ${order.id} chez ${widget.pharmacy.pharmacyName}...'
+          },
+        );
+        if (await canLaunchUrl(smsUri)) {
+          await launchUrl(smsUri);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d\'ouvrir l\'application SMS'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de l\'envoi SMS: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Numéro de téléphone non disponible')),
+      );
     }
   }
 }

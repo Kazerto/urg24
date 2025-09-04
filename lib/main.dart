@@ -38,27 +38,38 @@ void main() async {
     await Firebase.initializeApp();
   }
   
+  // Démarrer l'application immédiatement après Firebase
+  runApp(const DeliveryApp());
+  
+  // Effectuer les initialisations lourdes en arrière-plan
+  _initializeAppInBackground();
+}
+
+// Fonction pour initialiser l'application en arrière-plan
+Future<void> _initializeAppInBackground() async {
   // Test de connexion Firestore et initialisation (seulement sur mobile)
   if (!kIsWeb) {
-    bool firestoreOk = await FirestoreTest.testConnection();
-    if (firestoreOk) {
-      debugPrint('🚀 Firestore configuré correctement');
+    try {
+      bool firestoreOk = await FirestoreTest.testConnection();
+      if (firestoreOk) {
+        debugPrint('🚀 Firestore configuré correctement');
+        
+        // Initialiser les collections et créer l'admin par défaut en arrière-plan
+        final firestoreService = FirestoreService();
+        await firestoreService.initializePharmacyRequestsCollection();
+        await firestoreService.createDefaultAdmin();
+      } else {
+        debugPrint('⚠️ Problème de configuration Firestore');
+      }
       
-      // Initialiser les collections et créer l'admin par défaut
-      final firestoreService = FirestoreService();
-      await firestoreService.initializePharmacyRequestsCollection();
-      await firestoreService.createDefaultAdmin();
-    } else {
-      debugPrint('⚠️ Problème de configuration Firestore');
+      // Charger la configuration email sauvegardée
+      await _loadEmailConfig();
+    } catch (e) {
+      debugPrint('❌ Erreur lors de l\'initialisation en arrière-plan: $e');
     }
-    
-    // Charger la configuration email sauvegardée
-    await _loadEmailConfig();
   } else {
     debugPrint('🌐 Application web démarrée');
   }
-  
-  runApp(const DeliveryApp());
 }
 
 // Charger la configuration email sauvegardée

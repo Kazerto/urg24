@@ -14,17 +14,35 @@ class OrderSummaryScreen extends StatefulWidget {
 
 class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
   String? _selectedDeliveryAddress;
-  String _customAddress = '';
-  String _phoneNumber = '';
-  String _notes = '';
   double _deliveryFee = 2000; // Frais de livraison par défaut
   Map<String, dynamic>? _selectedMapAddress;
+  
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
   
   final List<String> _savedAddresses = [
     'Maison - 123 Rue de la République, Bamako',
     'Bureau - Avenue de l\'Indépendance, Bamako',
     'École - Quartier du Fleuve, Bamako',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController.addListener(_updateState);
+    _notesController.addListener(_updateState);
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  void _updateState() {
+    setState(() {});
+  }
 
   Future<void> _selectAddressOnMap() async {
     final result = await Navigator.push<Map<String, dynamic>>(
@@ -42,7 +60,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
       setState(() {
         _selectedMapAddress = result;
         _selectedDeliveryAddress = 'map';
-        _customAddress = '';
       });
     }
   }
@@ -296,7 +313,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
               onChanged: (value) {
                 setState(() {
                   _selectedDeliveryAddress = value;
-                  _customAddress = '';
                 });
               },
               contentPadding: EdgeInsets.zero,
@@ -379,34 +395,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                 ),
               ),
             
-            // Option adresse personnalisée
-            RadioListTile<String>(
-              title: const Text('Autre adresse'),
-              value: 'custom',
-              groupValue: _selectedDeliveryAddress,
-              onChanged: (value) {
-                setState(() {
-                  _selectedDeliveryAddress = value;
-                  _selectedMapAddress = null;
-                });
-              },
-              contentPadding: EdgeInsets.zero,
-            ),
-            
-            // Champ adresse personnalisée
-            if (_selectedDeliveryAddress == 'custom')
-              TextField(
-                onChanged: (value) => _customAddress = value,
-                decoration: const InputDecoration(
-                  hintText: 'Entrez votre adresse complète',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: AppDimensions.paddingMedium,
-                    vertical: AppDimensions.paddingSmall,
-                  ),
-                ),
-                maxLines: 2,
-              ),
           ],
         ),
       ),
@@ -430,7 +418,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
             ),
             const SizedBox(height: AppDimensions.paddingMedium),
             TextField(
-              onChanged: (value) => _phoneNumber = value,
+              controller: _phoneController,
               decoration: const InputDecoration(
                 labelText: 'Numéro de téléphone',
                 hintText: 'Ex: +223 XX XX XX XX',
@@ -466,7 +454,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
             ),
             const SizedBox(height: AppDimensions.paddingMedium),
             TextField(
-              onChanged: (value) => _notes = value,
+              controller: _notesController,
               decoration: const InputDecoration(
                 hintText: 'Instructions spéciales, allergies, etc.',
                 border: OutlineInputBorder(),
@@ -570,9 +558,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
 
   bool _canProceed() {
     return _selectedDeliveryAddress != null &&
-           (_selectedDeliveryAddress != 'custom' || _customAddress.isNotEmpty) &&
            (_selectedDeliveryAddress != 'map' || _selectedMapAddress != null) &&
-           _phoneNumber.isNotEmpty;
+           _phoneController.text.isNotEmpty;
   }
 
   void _proceedToPayment(CartProvider cartProvider) {
@@ -586,8 +573,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
         'latitude': _selectedMapAddress!['latitude'],
         'longitude': _selectedMapAddress!['longitude'],
       };
-    } else if (_selectedDeliveryAddress == 'custom') {
-      deliveryAddress = _customAddress;
     } else {
       deliveryAddress = _selectedDeliveryAddress!;
     }
@@ -597,8 +582,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
       'items': cartProvider.itemsList.map((item) => item.toMap()).toList(),
       'deliveryAddress': deliveryAddress,
       'deliveryCoordinates': deliveryCoordinates,
-      'phoneNumber': _phoneNumber,
-      'notes': _notes,
+      'phoneNumber': _phoneController.text,
+      'notes': _notesController.text,
       'subtotal': cartProvider.totalAmount,
       'deliveryFee': _deliveryFee,
       'total': cartProvider.totalAmount + _deliveryFee,

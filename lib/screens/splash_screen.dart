@@ -25,7 +25,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
 
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
@@ -53,8 +53,8 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
       
-      // Réduire le délai d'attente pour une meilleure performance
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Délai minimal pour permettre à l'animation de se terminer
+      await Future.delayed(const Duration(milliseconds: 200));
       
       debugPrint('🔍 Splash: Vérification de l\'authentification persistante...');
       
@@ -143,6 +143,16 @@ class _SplashScreenState extends State<SplashScreen>
                   fontSize: 18,  // Un peu plus grand pour compenser
                   fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              // Indicateur de chargement
+              const SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 2,
                 ),
               ),
             ],

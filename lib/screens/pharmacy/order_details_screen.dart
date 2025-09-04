@@ -639,9 +639,25 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Future<void> _callClient() async {
     final phoneNumber = _currentOrder.clientPhone;
     if (phoneNumber != null && phoneNumber.isNotEmpty) {
-      final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
-      if (await canLaunchUrl(phoneUri)) {
-        await launchUrl(phoneUri);
+      try {
+        final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+        if (await canLaunchUrl(phoneUri)) {
+          await launchUrl(phoneUri);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d\'ouvrir l\'application téléphone'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de l\'appel: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -653,15 +669,31 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Future<void> _sendSMS() async {
     final phoneNumber = _currentOrder.clientPhone;
     if (phoneNumber != null && phoneNumber.isNotEmpty) {
-      final Uri smsUri = Uri(
-        scheme: 'sms',
-        path: phoneNumber,
-        queryParameters: {
-          'body': 'Bonjour, concernant votre commande ${_currentOrder.id} chez ${widget.pharmacy.pharmacyName}...'
-        },
-      );
-      if (await canLaunchUrl(smsUri)) {
-        await launchUrl(smsUri);
+      try {
+        final Uri smsUri = Uri(
+          scheme: 'sms',
+          path: phoneNumber,
+          queryParameters: {
+            'body': 'Bonjour, concernant votre commande ${_currentOrder.id} chez ${widget.pharmacy.pharmacyName}...'
+          },
+        );
+        if (await canLaunchUrl(smsUri)) {
+          await launchUrl(smsUri);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d\'ouvrir l\'application SMS'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de l\'envoi SMS: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
