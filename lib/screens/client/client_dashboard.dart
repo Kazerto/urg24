@@ -8,6 +8,7 @@ import 'teleconseil_screen.dart';
 import 'prescription_scanner_screen.dart';
 import 'my_prescriptions_screen.dart';
 import 'pharmacy_selection_screen.dart';
+import 'client_profile_screen.dart';
 import '../../utils/constants.dart';
 
 class ClientDashboard extends StatefulWidget {
@@ -240,10 +241,10 @@ class _ClientDashboardState extends State<ClientDashboard> {
                       subtitle: 'Paramètres',
                       color: AppColors.textSecondary,
                       onTap: () {
-                        // TODO: Naviguer vers le profil
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Fonctionnalité en développement'),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ClientProfileScreen(),
                           ),
                         );
                       },
@@ -277,41 +278,49 @@ class _ClientDashboardState extends State<ClientDashboard> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 32,
-                color: color,
+              Flexible(
+                flex: 3,
+                child: Icon(
+                  icon,
+                  size: 32,
+                  color: color,
+                ),
               ),
               const SizedBox(height: 6),
               Flexible(
-                child: Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                flex: 3,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 2,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(height: 2),
               Flexible(
-                child: Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
+                flex: 2,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 1,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

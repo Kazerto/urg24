@@ -8,6 +8,7 @@ import '../../widgets/universal_drawer.dart';
 import '../../providers/auth_provider_simple.dart';
 import 'available_deliveries_screen.dart';
 import 'my_deliveries_screen.dart';
+import 'delivery_profile_screen.dart';
 
 // Wrapper screen that gets delivery person data from provider
 class DeliveryDashboardScreen extends StatefulWidget {
@@ -92,6 +93,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
   List<OrderModel> _myDeliveries = [];
   bool _isLoading = true;
   bool _isAvailable = false;
+  bool _isTogglingAvailability = false;
   DateTime? _lastBackPress;
 
   @override
@@ -169,16 +171,31 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         backgroundColor: AppColors.primaryColor,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: Icon(
-              _isAvailable ? Icons.toggle_on : Icons.toggle_off,
-              size: 32,
-            ),
-            onPressed: _toggleAvailability,
-          ),
+          _isTogglingAvailability
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: Icon(
+                    _isAvailable ? Icons.toggle_on : Icons.toggle_off,
+                    size: 32,
+                    color: _isAvailable ? Colors.greenAccent : Colors.white70,
+                  ),
+                  onPressed: _toggleAvailability,
+                  tooltip: _isAvailable ? 'Disponible - Appuyer pour désactiver' : 'Indisponible - Appuyer pour activer',
+                ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadDashboardData,
+            tooltip: 'Rafraîchir',
           ),
         ],
       ),
@@ -187,11 +204,16 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         userName: widget.deliveryPerson.fullName,
         userEmail: widget.deliveryPerson.email,
         userData: {
+          'uid': widget.deliveryPerson.id,
           'id': widget.deliveryPerson.id,
           'fullName': widget.deliveryPerson.fullName,
           'email': widget.deliveryPerson.email,
           'phoneNumber': widget.deliveryPerson.phoneNumber,
           'vehicleType': widget.deliveryPerson.vehicleType,
+          'plateNumber': widget.deliveryPerson.plateNumber,
+          'agency': widget.deliveryPerson.agency,
+          'profileImageUrl': widget.deliveryPerson.profileImageUrl,
+          'userType': 'delivery',
         },
       ),
       body: RefreshIndicator(
@@ -264,12 +286,21 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                 ],
               ),
             ),
-            Switch(
-              value: _isAvailable,
-              onChanged: (value) => _toggleAvailability(),
-              activeColor: Colors.white,
-              activeTrackColor: Colors.white30,
-            ),
+            _isTogglingAvailability
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Switch(
+                    value: _isAvailable,
+                    onChanged: (value) => _toggleAvailability(),
+                    activeColor: Colors.white,
+                    activeTrackColor: Colors.white30,
+                  ),
           ],
         ),
       ),
@@ -312,30 +343,46 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Card(
       child: Container(
-        padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+        padding: const EdgeInsets.all(AppDimensions.paddingSmall),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
           color: color.withOpacity(0.1),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: AppDimensions.paddingSmall),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+            Flexible(
+              flex: 2,
+              child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(height: 4),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
+            Flexible(
+              flex: 2,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Flexible(
+              flex: 2,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
             ),
           ],
@@ -396,6 +443,30 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
             ),
           ],
         ),
+        const SizedBox(height: AppDimensions.paddingMedium),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                'Mon\nprofil',
+                Icons.person,
+                AppColors.textSecondary,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DeliveryProfileScreen(
+                        deliveryPerson: widget.deliveryPerson,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: AppDimensions.paddingMedium),
+            const Expanded(child: SizedBox()), // Empty space for symmetry
+          ],
+        ),
       ],
     );
   }
@@ -406,17 +477,27 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
         child: Container(
-          padding: const EdgeInsets.all(AppDimensions.paddingLarge),
+          padding: const EdgeInsets.all(AppDimensions.paddingMedium),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: 32),
+              Flexible(
+                flex: 3,
+                child: Icon(icon, color: color, size: 32),
+              ),
               const SizedBox(height: AppDimensions.paddingSmall),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                flex: 2,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -595,38 +676,86 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
   }
 
   Future<void> _toggleAvailability() async {
+    if (_isTogglingAvailability) return; // Éviter les doubles clics
+
+    setState(() {
+      _isTogglingAvailability = true;
+    });
+
     try {
       final newStatus = !_isAvailable;
-      
+
+      debugPrint('🔄 Changement de disponibilité: $_isAvailable -> $newStatus');
+
+      // Mettre à jour dans la collection 'users' (pas 'delivery_persons')
       await FirebaseFirestore.instance
-          .collection('delivery_persons')
+          .collection('users')
           .doc(widget.deliveryPerson.id)
           .update({
         'isAvailable': newStatus,
         'lastActiveAt': FieldValue.serverTimestamp(),
       });
 
+      debugPrint('✅ Statut mis à jour dans Firestore');
+
+      // Mettre à jour aussi le provider pour synchroniser
+      if (mounted) {
+        final authProvider = Provider.of<AuthProviderSimple>(context, listen: false);
+        await authProvider.refreshUserData();
+        debugPrint('✅ Provider rafraîchi');
+      }
+
       setState(() {
         _isAvailable = newStatus;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            newStatus 
-                ? 'Vous êtes maintenant disponible pour les livraisons'
-                : 'Vous êtes maintenant indisponible'
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  newStatus ? Icons.check_circle : Icons.pause_circle,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    newStatus
+                        ? 'Vous êtes maintenant disponible pour les livraisons'
+                        : 'Vous êtes maintenant indisponible',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: newStatus ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 2),
           ),
-          backgroundColor: newStatus ? Colors.green : Colors.orange,
-        ),
-      );
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint('❌ Erreur lors du changement de disponibilité: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Erreur: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTogglingAvailability = false;
+        });
+      }
     }
   }
 

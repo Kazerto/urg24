@@ -5,6 +5,11 @@ import 'package:provider/provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/client/client_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
+import 'screens/admin/pharmacy_requests_screen.dart';
+import 'screens/admin/delivery_approvals_screen.dart';
+import 'screens/admin/admin_notifications_screen.dart';
+import 'screens/admin/email_config_screen.dart';
+import 'screens/admin/admin_users_screen.dart';
 import 'screens/pharmacy/pharmacy_dashboard.dart';
 import 'screens/pharmacy/stock_management_screen.dart';
 import 'screens/pharmacy/orders_management_screen.dart';
@@ -112,13 +117,18 @@ class DeliveryApp extends StatelessWidget {
         routes: {
           '/client-dashboard': (context) => const ClientDashboard(),
           '/admin-dashboard': (context) => const AdminDashboardScreen(),
+          '/admin/pharmacy-requests': (context) => const PharmacyRequestsScreen(),
+          '/admin/delivery-approvals': (context) => const DeliveryApprovalsScreen(),
+          '/admin/notifications': (context) => const AdminNotificationsScreen(),
+          '/admin/email-config': (context) => const EmailConfigScreen(),
+          '/admin/users': (context) => const AdminUsersScreen(),
         },
         onGenerateRoute: (settings) {
           // Routes dynamiques pour les pharmacies
           if (settings.name?.startsWith('/pharmacy') == true) {
             final args = settings.arguments as Map<String, dynamic>?;
             final pharmacy = args?['pharmacy'];
-            
+
             if (pharmacy == null) {
               return MaterialPageRoute(
                 builder: (_) => const Scaffold(
@@ -146,7 +156,37 @@ class DeliveryApp extends StatelessWidget {
                 );
             }
           }
-          
+
+          // Routes admin - placeholders pour les non implémentées
+          if (settings.name?.startsWith('/admin') == true) {
+            switch (settings.name) {
+              case '/admin/analytics':
+              case '/admin/backup':
+                return MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(
+                      title: Text('Fonctionnalité en développement'),
+                      backgroundColor: AppColors.primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    body: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.construction, size: 80, color: Colors.grey[400]),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Cette fonctionnalité sera bientôt disponible',
+                            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+            }
+          }
+
           return null;
         },
         debugShowCheckedModeBanner: false,

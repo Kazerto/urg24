@@ -364,6 +364,26 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 16),
+                  if (!prescription.isUsed)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showDeleteConfirmationDialog(prescription);
+                        },
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        label: const Text(
+                          'Supprimer cette ordonnance',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -371,6 +391,79 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
         ),
       ),
     );
+  }
+
+  void _showDeleteConfirmationDialog(PrescriptionModel prescription) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer l\'ordonnance'),
+        content: const Text(
+          'Êtes-vous sûr de vouloir supprimer cette ordonnance ?\n\n'
+          'Cette action est irréversible.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deletePrescription(prescription);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deletePrescription(PrescriptionModel prescription) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('prescriptions')
+          .doc(prescription.id)
+          .delete();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Ordonnance supprimée avec succès'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Recharger la liste
+        await _loadPrescriptions();
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de la suppression de l\'ordonnance: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Erreur: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   String _formatDate(DateTime date) {

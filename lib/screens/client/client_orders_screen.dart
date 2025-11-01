@@ -388,6 +388,53 @@ class _ClientOrdersScreenState extends State<ClientOrdersScreen> {
     return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }
 
+  Future<void> _cancelOrder(OrderModel order) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('orders')
+          .doc(order.id)
+          .update({
+        'status': 'cancelled',
+        'cancelledAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Commande annulée avec succès'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Recharger la liste des commandes
+        await _loadOrders();
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de l\'annulation de la commande: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Erreur: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showCancelDialog(OrderModel order) {
     showDialog(
       context: context,
@@ -402,15 +449,10 @@ class _ClientOrdersScreenState extends State<ClientOrdersScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // TODO: Implémenter l'annulation
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Annulation en cours...'),
-                ),
-              );
+              _cancelOrder(order);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Oui, annuler'),
+            child: const Text('Oui, annuler', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

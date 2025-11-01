@@ -492,6 +492,14 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              _showDeleteConfirmationDialog(stock);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
               _showEditStockDialog(stock);
             },
             child: const Text('Modifier'),
@@ -769,6 +777,56 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
       await _loadStocks();
     } catch (e) {
       _showErrorSnackBar('Erreur lors de la sauvegarde: $e');
+    }
+  }
+
+  void _showDeleteConfirmationDialog(StockModel stock) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer le produit'),
+        content: Text(
+          'Êtes-vous sûr de vouloir supprimer "${stock.medicamentName}" du stock ?\n\n'
+          'Cette action désactivera le produit. Il ne sera plus visible dans la liste.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteProduct(stock);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteProduct(StockModel stock) async {
+    try {
+      // Soft delete: set isActive to false instead of deleting the document
+      await FirebaseFirestore.instance
+          .collection('stock')
+          .doc(stock.id)
+          .update({
+        'isActive': false,
+        'deletedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      _showSuccessSnackBar('Produit supprimé avec succès');
+      await _loadStocks();
+    } catch (e) {
+      debugPrint('Erreur lors de la suppression du produit: $e');
+      _showErrorSnackBar('Erreur lors de la suppression: ${e.toString()}');
     }
   }
 

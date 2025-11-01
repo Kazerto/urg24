@@ -276,6 +276,23 @@ class AuthProviderSimple with ChangeNotifier {
     }
   }
 
+  // Rafraîchir les données utilisateur depuis Firestore
+  Future<void> refreshUserData() async {
+    try {
+      if (_user == null) return;
+
+      Map<String, dynamic>? updatedUserData = await _authService.getCurrentUserData(_user!.uid);
+
+      if (updatedUserData != null) {
+        _userData = updatedUserData;
+        notifyListeners();
+        debugPrint('✅ Données utilisateur rafraîchies');
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur lors du rafraîchissement des données: $e');
+    }
+  }
+
   // Déconnexion
   Future<void> signOut() async {
     await _authService.signOut();

@@ -18,6 +18,7 @@ class PharmacyModel {
   final double? latitude;
   final double? longitude;
   final String? photoUrl;
+  final String? profileImageUrl;
 
   PharmacyModel({
     required this.id,
@@ -37,6 +38,7 @@ class PharmacyModel {
     this.latitude,
     this.longitude,
     this.photoUrl,
+    this.profileImageUrl,
   });
 
   // Factory constructor pour cr�er depuis Firestore
@@ -61,6 +63,7 @@ class PharmacyModel {
       latitude: data['latitude']?.toDouble(),
       longitude: data['longitude']?.toDouble(),
       photoUrl: data['photoUrl'],
+      profileImageUrl: data['profileImageUrl'],
     );
   }
 
@@ -78,11 +81,11 @@ class PharmacyModel {
       isApproved: data['isApproved'] ?? false,
       rating: (data['rating'] ?? 0.0).toDouble(),
       totalOrders: data['totalOrders'] ?? 0,
-      createdAt: data['createdAt'] is Timestamp 
+      createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.parse(data['createdAt']),
-      approvedAt: data['approvedAt'] != null 
-          ? (data['approvedAt'] is Timestamp 
+      approvedAt: data['approvedAt'] != null
+          ? (data['approvedAt'] is Timestamp
               ? (data['approvedAt'] as Timestamp).toDate()
               : DateTime.parse(data['approvedAt']))
           : null,
@@ -90,6 +93,7 @@ class PharmacyModel {
       latitude: data['latitude']?.toDouble(),
       longitude: data['longitude']?.toDouble(),
       photoUrl: data['photoUrl'],
+      profileImageUrl: data['profileImageUrl'],
     );
   }
 
@@ -113,6 +117,7 @@ class PharmacyModel {
       'latitude': latitude,
       'longitude': longitude,
       'photoUrl': photoUrl,
+      'profileImageUrl': profileImageUrl,
     };
   }
 
@@ -135,6 +140,7 @@ class PharmacyModel {
     double? latitude,
     double? longitude,
     String? photoUrl,
+    String? profileImageUrl,
   }) {
     return PharmacyModel(
       id: id ?? this.id,
@@ -154,6 +160,7 @@ class PharmacyModel {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       photoUrl: photoUrl ?? this.photoUrl,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
     );
   }
 

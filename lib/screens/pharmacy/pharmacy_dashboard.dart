@@ -7,6 +7,7 @@ import '../../models/stock_model.dart';
 import '../../utils/constants.dart';
 import 'pharmacy_order_management_screen.dart';
 import 'pharmacy_prescriptions_screen.dart';
+import 'pharmacy_profile_screen.dart';
 
 class PharmacyDashboard extends StatefulWidget {
   final PharmacyModel pharmacy;
@@ -353,16 +354,18 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
                 ),
                 Flexible(
                   flex: 2,
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: titleFontSize,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[700],
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: titleFontSize,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
+                      maxLines: 2,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -484,6 +487,17 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
                 arguments: {'pharmacy': widget.pharmacy}
               ),
             ),
+            _buildQuickActionCard(
+              'Profil',
+              Icons.settings,
+              Colors.grey,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PharmacyProfileScreen(pharmacy: widget.pharmacy),
+                ),
+              ),
+            ),
               ],
             );
           },
@@ -504,18 +518,27 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 32, color: color),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                flex: 3,
+                child: Icon(icon, size: 32, color: color),
+              ),
+              const SizedBox(height: 6),
+              Flexible(
+                flex: 2,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ],

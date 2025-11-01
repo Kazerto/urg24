@@ -2,7 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider_simple.dart';
 import '../models/pharmacy_model.dart';
+import '../models/delivery_person.dart';
 import '../utils/constants.dart';
+// Client screens
+import '../screens/client/pharmacy_selection_screen.dart';
+import '../screens/client/client_orders_screen.dart';
+import '../screens/client/client_profile_screen.dart';
+// Delivery screens
+import '../screens/delivery/available_deliveries_screen.dart';
+import '../screens/delivery/my_deliveries_screen.dart';
+import '../screens/delivery/delivery_profile_screen.dart';
+// Pharmacy screens
+import '../screens/pharmacy/pharmacy_profile_screen.dart';
 
 class UniversalDrawer extends StatelessWidget {
   final String userType;
@@ -37,6 +48,11 @@ class UniversalDrawer extends StatelessWidget {
   }
 
   Widget _buildUserHeader(BuildContext context) {
+    final profileImageUrl = userData?['profileImageUrl'] as String?;
+
+    // Debug: afficher l'URL de l'image de profil
+    debugPrint('🖼️ Profile image URL pour $userName: $profileImageUrl');
+
     return UserAccountsDrawerHeader(
       accountName: Text(
         userName,
@@ -46,17 +62,7 @@ class UniversalDrawer extends StatelessWidget {
         ),
       ),
       accountEmail: Text(userEmail),
-      currentAccountPicture: CircleAvatar(
-        backgroundColor: Colors.white,
-        child: Text(
-          userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryColor,
-          ),
-        ),
-      ),
+      currentAccountPicture: _buildProfileAvatar(profileImageUrl),
       decoration: BoxDecoration(
         color: AppColors.primaryColor,
         gradient: LinearGradient(
@@ -66,6 +72,58 @@ class UniversalDrawer extends StatelessWidget {
             AppColors.primaryColor,
             AppColors.primaryColor.withOpacity(0.8),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatar(String? profileImageUrl) {
+    // Si l'URL existe et n'est pas vide, essayer de charger l'image
+    if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+      return CircleAvatar(
+        backgroundColor: Colors.white,
+        child: ClipOval(
+          child: Image.network(
+            profileImageUrl,
+            width: 72,
+            height: 72,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              debugPrint('❌ Erreur chargement image profil: $error');
+              // En cas d'erreur, afficher l'initiale
+              return _buildInitialAvatar();
+            },
+          ),
+        ),
+      );
+    }
+
+    // Pas d'URL, afficher l'initiale
+    return _buildInitialAvatar();
+  }
+
+  Widget _buildInitialAvatar() {
+    return CircleAvatar(
+      backgroundColor: Colors.white,
+      child: Text(
+        userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+        style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primaryColor,
         ),
       ),
     );
@@ -100,12 +158,6 @@ class UniversalDrawer extends StatelessWidget {
       const Divider(),
       _buildMenuItem(
         context,
-        Icons.settings,
-        'Paramètres',
-        () => _showSettingsDialog(context),
-      ),
-      _buildMenuItem(
-        context,
         Icons.help,
         'Aide',
         () => _showHelpDialog(context),
@@ -116,6 +168,8 @@ class UniversalDrawer extends StatelessWidget {
   }
 
   List<Widget> _buildPharmacyMenuItems(BuildContext context) {
+    final pharmacy = _getPharmacyFromData();
+
     return [
       const Divider(),
       _buildSectionHeader('Gestion'),
@@ -137,13 +191,32 @@ class UniversalDrawer extends StatelessWidget {
         'Partenaires',
         () => _navigateToRoute(context, '/pharmacy/partners'),
       ),
+      _buildMenuItem(
+        context,
+        Icons.person,
+        'Mon profil',
+        () {
+          Navigator.pop(context);
+          if (pharmacy != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PharmacyProfileScreen(pharmacy: pharmacy),
+              ),
+            );
+          }
+        },
+      ),
       const Divider(),
       _buildSectionHeader('Statistiques'),
       _buildMenuItem(
         context,
         Icons.analytics,
         'Rapports',
-        () => Navigator.pushNamed(context, '/pharmacy/reports'),
+        () {
+          Navigator.pop(context);
+          _showComingSoonDialog(context, 'Rapports');
+        },
       ),
     ];
   }
@@ -156,44 +229,103 @@ class UniversalDrawer extends StatelessWidget {
         context,
         Icons.search,
         'Rechercher pharmacies',
-        () => Navigator.pushNamed(context, '/client/search'),
+        () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PharmacySelectionScreen()),
+          );
+        },
       ),
       _buildMenuItem(
         context,
         Icons.history,
         'Mes commandes',
-        () => Navigator.pushNamed(context, '/client/orders'),
+        () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ClientOrdersScreen()),
+          );
+        },
       ),
       _buildMenuItem(
         context,
         Icons.favorite,
         'Favoris',
-        () => Navigator.pushNamed(context, '/client/favorites'),
+        () {
+          Navigator.pop(context);
+          _showComingSoonDialog(context, 'Favoris');
+        },
+      ),
+      _buildMenuItem(
+        context,
+        Icons.person,
+        'Mon profil',
+        () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ClientProfileScreen()),
+          );
+        },
       ),
     ];
   }
 
   List<Widget> _buildDeliveryMenuItems(BuildContext context) {
+    final deliveryPerson = _getDeliveryPersonFromData();
+
     return [
       const Divider(),
       _buildSectionHeader('Livraisons'),
       _buildMenuItem(
         context,
         Icons.local_shipping,
-        'Livraisons en cours',
-        () => Navigator.pushNamed(context, '/delivery/active'),
+        'Livraisons disponibles',
+        () {
+          Navigator.pop(context);
+          if (deliveryPerson != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AvailableDeliveriesScreen(deliveryPerson: deliveryPerson),
+              ),
+            );
+          }
+        },
       ),
       _buildMenuItem(
         context,
         Icons.history,
-        'Historique',
-        () => Navigator.pushNamed(context, '/delivery/history'),
+        'Mes livraisons',
+        () {
+          Navigator.pop(context);
+          if (deliveryPerson != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MyDeliveriesScreen(deliveryPerson: deliveryPerson),
+              ),
+            );
+          }
+        },
       ),
       _buildMenuItem(
         context,
-        Icons.map,
-        'Itinéraires',
-        () => Navigator.pushNamed(context, '/delivery/routes'),
+        Icons.person,
+        'Mon profil',
+        () {
+          Navigator.pop(context);
+          if (deliveryPerson != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DeliveryProfileScreen(deliveryPerson: deliveryPerson),
+              ),
+            );
+          }
+        },
       ),
     ];
   }
@@ -206,25 +338,37 @@ class UniversalDrawer extends StatelessWidget {
         context,
         Icons.local_pharmacy,
         'Demandes pharmacies',
-        () => Navigator.pushNamed(context, '/admin/pharmacy-requests'),
+        () {
+          Navigator.pop(context);
+          Navigator.pushNamed(context, '/admin/pharmacy-requests');
+        },
       ),
       _buildMenuItem(
         context,
         Icons.delivery_dining,
         'Livreurs',
-        () => Navigator.pushNamed(context, '/admin/delivery-approvals'),
+        () {
+          Navigator.pop(context);
+          Navigator.pushNamed(context, '/admin/delivery-approvals');
+        },
       ),
       _buildMenuItem(
         context,
         Icons.notifications,
         'Notifications',
-        () => Navigator.pushNamed(context, '/admin/notifications'),
+        () {
+          Navigator.pop(context);
+          Navigator.pushNamed(context, '/admin/notifications');
+        },
       ),
       _buildMenuItem(
         context,
         Icons.email,
         'Configuration Email',
-        () => Navigator.pushNamed(context, '/admin/email-config'),
+        () {
+          Navigator.pop(context);
+          Navigator.pushNamed(context, '/admin/email-config');
+        },
       ),
       const Divider(),
       _buildSectionHeader('Gestion'),
@@ -232,19 +376,28 @@ class UniversalDrawer extends StatelessWidget {
         context,
         Icons.people,
         'Utilisateurs',
-        () => Navigator.pushNamed(context, '/admin/users'),
+        () {
+          Navigator.pop(context);
+          Navigator.pushNamed(context, '/admin/users');
+        },
       ),
       _buildMenuItem(
         context,
         Icons.analytics,
         'Statistiques',
-        () => Navigator.pushNamed(context, '/admin/analytics'),
+        () {
+          Navigator.pop(context);
+          Navigator.pushNamed(context, '/admin/analytics');
+        },
       ),
       _buildMenuItem(
         context,
         Icons.backup,
         'Sauvegarde',
-        () => Navigator.pushNamed(context, '/admin/backup'),
+        () {
+          Navigator.pop(context);
+          Navigator.pushNamed(context, '/admin/backup');
+        },
       ),
     ];
   }
@@ -344,6 +497,46 @@ class UniversalDrawer extends StatelessWidget {
       return {'pharmacy': pharmacy};
     }
     return null;
+  }
+
+  PharmacyModel? _getPharmacyFromData() {
+    if (userData != null && userType.toLowerCase() == 'pharmacy') {
+      try {
+        return PharmacyModel.fromMap(userData!, userData!['uid'] ?? '');
+      } catch (e) {
+        debugPrint('Erreur lors de la conversion des données de la pharmacie: $e');
+        return null;
+      }
+    }
+    return null;
+  }
+
+  DeliveryPersonModel? _getDeliveryPersonFromData() {
+    if (userData != null && userType.toLowerCase() == 'delivery') {
+      try {
+        return DeliveryPersonModel.fromMap(userData!, userData!['uid'] ?? '');
+      } catch (e) {
+        debugPrint('Erreur lors de la conversion des données du livreur: $e');
+        return null;
+      }
+    }
+    return null;
+  }
+
+  void _showComingSoonDialog(BuildContext context, String feature) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(feature),
+        content: Text('La fonctionnalité "$feature" sera bientôt disponible.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showSettingsDialog(BuildContext context) {
