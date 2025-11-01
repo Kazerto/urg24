@@ -21,6 +21,8 @@ dependencies:
   mailer: ^6.1.2
   url_launcher: ^6.2.6
   image_picker: ^1.0.7
+  cloudinary_public: ^0.21.0
+  http: ^1.1.0
   cupertino_icons: ^1.0.2
   geolocator: ^14.0.2
   geocoding: ^2.1.0

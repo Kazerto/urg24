@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/cart_provider.dart';
 import '../../utils/constants.dart';
+import '../../models/prescription_model.dart';
 import 'payment_selection_screen.dart';
 import 'simple_address_selection_screen.dart';
 
@@ -16,21 +19,27 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
   String? _selectedDeliveryAddress;
   double _deliveryFee = 2000; // Frais de livraison par défaut
   Map<String, dynamic>? _selectedMapAddress;
-  
+
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-  
+
   final List<String> _savedAddresses = [
     'Maison - 123 Rue de la République, Bamako',
     'Bureau - Avenue de l\'Indépendance, Bamako',
     'École - Quartier du Fleuve, Bamako',
   ];
 
+  // Gestion des ordonnances
+  List<PrescriptionModel> _availablePrescriptions = [];
+  PrescriptionModel? _selectedPrescription;
+  bool _isLoadingPrescriptions = true;
+
   @override
   void initState() {
     super.initState();
     _phoneController.addListener(_updateState);
     _notesController.addListener(_updateState);
+    _loadAvailablePrescriptions();
   }
 
   @override
@@ -42,6 +51,36 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
 
   void _updateState() {
     setState(() {});
+  }
+
+  Future<void> _loadAvailablePrescriptions() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() => _isLoadingPrescriptions = false);
+        return;
+      }
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('prescriptions')
+          .where('userId', isEqualTo: user.uid)
+          .where('status', isEqualTo: 'uploaded')
+          .get();
+
+      // Trier côté client pour éviter l'index composite
+      final prescriptions = querySnapshot.docs
+          .map((doc) => PrescriptionModel.fromFirestore(doc))
+          .toList()
+        ..sort((a, b) => b.uploadedAt.compareTo(a.uploadedAt)); // Tri décroissant
+
+      setState(() {
+        _availablePrescriptions = prescriptions;
+        _isLoadingPrescriptions = false;
+      });
+    } catch (e) {
+      debugPrint('Erreur chargement ordonnances disponibles: $e');
+      setState(() => _isLoadingPrescriptions = false);
+    }
   }
 
   Future<void> _selectAddressOnMap() async {
@@ -94,6 +133,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                 _buildDeliveryAddress(),
                 const SizedBox(height: AppDimensions.paddingLarge),
                 _buildContactInfo(),
+                const SizedBox(height: AppDimensions.paddingLarge),
+                _buildPrescriptionSelection(),
                 const SizedBox(height: AppDimensions.paddingLarge),
                 _buildOrderNotes(),
                 const SizedBox(height: AppDimensions.paddingLarge),
@@ -437,6 +478,150 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     );
   }
 
+  Widget _buildPrescriptionSelection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Ordonnance (optionnel)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'Optionnel',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.paddingSmall),
+            const Text(
+              'Joindre une ordonnance à votre commande si nécessaire',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.paddingMedium),
+            if (_isLoadingPrescriptions)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (_availablePrescriptions.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      size: 40,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Aucune ordonnance disponible',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Column(
+                children: [
+                  // Option "Aucune ordonnance"
+                  RadioListTile<PrescriptionModel?>(
+                    title: const Text('Pas d\'ordonnance pour cette commande'),
+                    value: null,
+                    groupValue: _selectedPrescription,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedPrescription = value;
+                      });
+                    },
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const Divider(),
+                  // Liste des ordonnances disponibles
+                  ..._availablePrescriptions.map((prescription) {
+                    return RadioListTile<PrescriptionModel?>(
+                      title: Text('Ordonnance du ${_formatDate(prescription.uploadedAt)}'),
+                      subtitle: Text('Uploadée à ${_formatTime(prescription.uploadedAt)}'),
+                      value: prescription,
+                      groupValue: _selectedPrescription,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPrescription = value;
+                        });
+                      },
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            prescription.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.description,
+                                size: 30,
+                                color: Colors.grey,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _formatTime(DateTime date) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
   Widget _buildOrderNotes() {
     return Card(
       child: Padding(
@@ -588,6 +773,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
       'deliveryFee': _deliveryFee,
       'total': cartProvider.totalAmount + _deliveryFee,
       'orderNumber': 'CMD${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+      'prescriptionUrl': _selectedPrescription?.imageUrl,
+      'prescriptionId': _selectedPrescription?.id,
     };
 
     Navigator.push(

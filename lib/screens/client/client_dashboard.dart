@@ -6,6 +6,7 @@ import '../guest/categories_browser_screen.dart';
 import 'client_orders_screen.dart';
 import 'teleconseil_screen.dart';
 import 'prescription_scanner_screen.dart';
+import 'my_prescriptions_screen.dart';
 import 'pharmacy_selection_screen.dart';
 import '../../utils/constants.dart';
 
@@ -220,15 +221,15 @@ class _ClientDashboardState extends State<ClientDashboard> {
                       },
                     ),
                     _buildActionCard(
-                      icon: Icons.camera_alt,
-                      title: 'Scanner\nordonnance',
-                      subtitle: 'Photo',
+                      icon: Icons.description,
+                      title: 'Mes\nordonnances',
+                      subtitle: 'Gestion',
                       color: Colors.indigo,
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const PrescriptionScannerScreen(),
+                            builder: (context) => const MyPrescriptionsScreen(),
                           ),
                         );
                       },

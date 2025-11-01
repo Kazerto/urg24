@@ -1,0 +1,152 @@
+rules_version = '2';
+
+// Règles de sécurité Firebase Storage pour URG24
+// Ces règles protègent vos données tout en permettant les opérations nécessaires
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ========================================
+    // HELPER FUNCTIONS (Fonctions utilitaires)
+    // ========================================
+
+    // Vérifier si l'utilisateur est authentifié
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Vérifier si l'utilisateur possède l'UID spécifié
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Vérifier si le fichier est une image
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Vérifier la taille du fichier (max 10 MB)
+    function isSizeValid() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Vérifier si l'utilisateur est admin (à implémenter via custom claims)
+    function isAdmin() {
+      return request.auth.token.userType == 'admin';
+    }
+
+    // Vérifier si l'utilisateur est pharmacie
+    function isPharmacy() {
+      return request.auth.token.userType == 'pharmacy';
+    }
+
+
+    // ========================================
+    // RÈGLES D'ACCÈS PAR DOSSIER
+    // ========================================
+
+    // 📄 ORDONNANCES (Prescriptions)
+    // - Seul le client propriétaire peut uploader
+    // - Les pharmacies et admins peuvent lire
+    match /prescriptions/{userId}/{fileName} {
+      // Lecture: propriétaire, pharmacies, admins
+      allow read: if isAuthenticated() &&
+                     (isOwner(userId) || isPharmacy() || isAdmin());
+
+      // Écriture: uniquement le propriétaire
+      allow write: if isAuthenticated() &&
+                      isOwner(userId) &&
+                      isImage() &&
+                      isSizeValid();
+
+      // Suppression: propriétaire ou admin
+      allow delete: if isAuthenticated() &&
+                       (isOwner(userId) || isAdmin());
+    }
+
+    // 👤 PHOTOS DE PROFIL - CLIENTS
+    match /profiles/client/{userId} {
+      // Lecture: tout utilisateur authentifié
+      allow read: if isAuthenticated();
+
+      // Écriture: uniquement le propriétaire
+      allow write: if isAuthenticated() &&
+                      isOwner(userId) &&
+                      isImage() &&
+                      isSizeValid();
+
+      // Suppression: propriétaire ou admin
+      allow delete: if isAuthenticated() &&
+                       (isOwner(userId) || isAdmin());
+    }
+
+    // 🚚 PHOTOS DE PROFIL - LIVREURS
+    match /profiles/delivery_person/{userId} {
+      // Lecture: tout utilisateur authentifié
+      allow read: if isAuthenticated();
+
+      // Écriture: uniquement le propriétaire
+      allow write: if isAuthenticated() &&
+                      isOwner(userId) &&
+                      isImage() &&
+                      isSizeValid();
+
+      // Suppression: propriétaire ou admin
+      allow delete: if isAuthenticated() &&
+                       (isOwner(userId) || isAdmin());
+    }
+
+    // 🏥 PHOTOS DE PROFIL - PHARMACIES
+    match /profiles/pharmacy/{pharmacyId} {
+      // Lecture: tout utilisateur authentifié
+      allow read: if isAuthenticated();
+
+      // Écriture: uniquement la pharmacie propriétaire
+      allow write: if isAuthenticated() &&
+                      isOwner(pharmacyId) &&
+                      isImage() &&
+                      isSizeValid();
+
+      // Suppression: propriétaire ou admin
+      allow delete: if isAuthenticated() &&
+                       (isOwner(pharmacyId) || isAdmin());
+    }
+
+    // 💊 PHOTOS DE MÉDICAMENTS
+    match /medicaments/{pharmacyId}/{fileName} {
+      // Lecture: tout utilisateur authentifié
+      allow read: if isAuthenticated();
+
+      // Écriture: uniquement la pharmacie propriétaire
+      allow write: if isAuthenticated() &&
+                      isOwner(pharmacyId) &&
+                      isImage() &&
+                      isSizeValid();
+
+      // Suppression: propriétaire ou admin
+      allow delete: if isAuthenticated() &&
+                       (isOwner(pharmacyId) || isAdmin());
+    }
+
+    // 🏪 PHOTOS DE PHARMACIES
+    match /pharmacies/{pharmacyId}/{fileName} {
+      // Lecture: tout le monde (pour affichage public)
+      allow read: if true;
+
+      // Écriture: uniquement la pharmacie propriétaire
+      allow write: if isAuthenticated() &&
+                      isOwner(pharmacyId) &&
+                      isImage() &&
+                      isSizeValid();
+
+      // Suppression: propriétaire ou admin
+      allow delete: if isAuthenticated() &&
+                       (isOwner(pharmacyId) || isAdmin());
+    }
+
+    // ❌ BLOQUER TOUT LE RESTE
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

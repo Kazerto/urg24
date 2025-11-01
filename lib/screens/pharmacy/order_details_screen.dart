@@ -54,6 +54,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             const SizedBox(height: AppDimensions.paddingLarge),
             _buildOrderItems(),
             const SizedBox(height: AppDimensions.paddingLarge),
+            if (_currentOrder.prescriptionUrl != null && _currentOrder.prescriptionUrl!.isNotEmpty)
+              _buildPrescriptionInfo(),
+            if (_currentOrder.prescriptionUrl != null && _currentOrder.prescriptionUrl!.isNotEmpty)
+              const SizedBox(height: AppDimensions.paddingLarge),
             _buildDeliveryInfo(),
             const SizedBox(height: AppDimensions.paddingLarge),
             _buildPricingInfo(),
@@ -287,7 +291,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               ),
             ),
             const SizedBox(height: AppDimensions.paddingMedium),
-            
+
             ..._currentOrder.items.map((item) => Padding(
               padding: const EdgeInsets.only(bottom: AppDimensions.paddingMedium),
               child: Container(
@@ -352,6 +356,175 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 ),
               ),
             )).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrescriptionInfo() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Ordonnance médicale',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.verified, color: Colors.green, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Fournie',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.paddingSmall),
+            const Text(
+              'Le client a fourni une ordonnance pour cette commande',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.paddingMedium),
+
+            // Image de l'ordonnance
+            GestureDetector(
+              onTap: () => _showPrescriptionFullScreen(),
+              child: Container(
+                width: double.infinity,
+                height: 200,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    _currentOrder.prescriptionUrl!,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error,
+                              size: 40,
+                              color: Colors.red,
+                            ),
+                            SizedBox(height: 8),
+                            Text('Impossible de charger l\'ordonnance'),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppDimensions.paddingSmall),
+
+            Row(
+              children: [
+                const Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                const SizedBox(width: 4),
+                Text(
+                  'Appuyez sur l\'image pour l\'agrandir',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPrescriptionFullScreen() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Center(
+                child: Image.network(
+                  _currentOrder.prescriptionUrl!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error,
+                            size: 64,
+                            color: Colors.red,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Impossible de charger l\'ordonnance',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 32),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
           ],
         ),
       ),

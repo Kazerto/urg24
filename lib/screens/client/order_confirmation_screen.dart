@@ -53,6 +53,8 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
         'deliveryFee': widget.orderData['deliveryFee'],
         'totalAmount': widget.orderData['total'],
         'payment': widget.orderData['payment'],
+        'prescriptionUrl': widget.orderData['prescriptionUrl'],
+        'prescriptionId': widget.orderData['prescriptionId'],
         'status': 'pending',
         'orderDate': Timestamp.fromDate(DateTime.now()),
         'estimatedDeliveryTime': Timestamp.fromDate(
@@ -70,6 +72,14 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
         _orderSaved = true;
         _isLoading = false;
       });
+
+      // Marquer l'ordonnance comme utilisée si une ordonnance est attachée
+      if (widget.orderData['prescriptionId'] != null) {
+        await _markPrescriptionAsUsed(
+          widget.orderData['prescriptionId'],
+          docRef.id,
+        );
+      }
 
       // Déduire le stock des produits commandés
       await _deductStockFromPharmacy(widget.orderData['items'], widget.orderData['pharmacy']['id']);
@@ -507,6 +517,24 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
         ),
       ],
     );
+  }
+
+  /// Marque l'ordonnance comme utilisée dans une commande
+  Future<void> _markPrescriptionAsUsed(String prescriptionId, String orderId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('prescriptions')
+          .doc(prescriptionId)
+          .update({
+        'status': 'used_in_order',
+        'usedInOrderId': orderId,
+        'usedAt': Timestamp.now(),
+      });
+      debugPrint('Ordonnance $prescriptionId marquée comme utilisée dans commande $orderId');
+    } catch (e) {
+      debugPrint('Erreur lors de la mise à jour de l\'ordonnance: $e');
+      // Ne pas faire échouer la commande si la mise à jour échoue
+    }
   }
 
   /// Déduit les quantités commandées du stock de la pharmacie

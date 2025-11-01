@@ -3,7 +3,10 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/constants.dart';
+import '../../services/cloudinary_service.dart';
 
 class PrescriptionScannerScreen extends StatefulWidget {
   const PrescriptionScannerScreen({super.key});
@@ -16,7 +19,10 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
   XFile? _image;
   Uint8List? _webImage;
   final ImagePicker _picker = ImagePicker();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
   bool _isLoading = false;
+  double _uploadProgress = 0.0;
+  String? _uploadedUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -280,8 +286,15 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
               ),
             ),
             const SizedBox(height: AppDimensions.paddingSmall),
+            if (_uploadProgress > 0)
+              LinearProgressIndicator(
+                value: _uploadProgress,
+                backgroundColor: Colors.grey[300],
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+              ),
+            const SizedBox(height: AppDimensions.paddingSmall),
             Text(
-              'Veuillez patienter pendant que nous analysons votre document.',
+              'Veuillez patienter pendant que nous téléchargeons votre document.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey[600],
@@ -331,6 +344,8 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
     setState(() {
       _image = null;
       _webImage = null;
+      _uploadedUrl = null;
+      _uploadProgress = 0.0;
     });
   }
 
@@ -345,18 +360,54 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
       return;
     }
 
+    // Vérifier que l'utilisateur est connecté
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vous devez être connecté pour envoyer une ordonnance'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
+      _uploadProgress = 0.0;
     });
 
     try {
-      // Simulation d'upload de l'ordonnance
-      await Future.delayed(const Duration(seconds: 2));
+      // Upload vers Cloudinary
+      final url = await _cloudinaryService.uploadPrescription(
+        file: _image!,
+        userId: user.uid,
+        webImage: _webImage,
+      );
+
+      setState(() {
+        _uploadedUrl = url;
+        _uploadProgress = 1.0;
+      });
+
+      debugPrint('✅ Ordonnance uploadée avec succès sur Cloudinary: $url');
+
+      // Sauvegarder l'ordonnance dans Firestore
+      await FirebaseFirestore.instance.collection('prescriptions').add({
+        'userId': user.uid,
+        'imageUrl': url,
+        'uploadedAt': FieldValue.serverTimestamp(),
+        'status': 'uploaded', // uploaded, used_in_order
+        'usedInOrderId': null,
+      });
+
+      debugPrint('✅ Ordonnance sauvegardée dans Firestore');
 
       if (mounted) {
         _showUploadResult();
       }
     } catch (e) {
+      debugPrint('❌ Erreur upload ordonnance: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

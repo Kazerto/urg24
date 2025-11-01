@@ -344,17 +344,50 @@ class _PharmacyProductsScreenState extends State<PharmacyProductsScreen> {
           children: [
             Row(
               children: [
+                // Photo du produit ou icône par défaut
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryColor.withOpacity(0.1),
+                    color: product.photoUrl == null || product.photoUrl!.isEmpty
+                        ? AppColors.primaryColor.withOpacity(0.1)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
+                    border: product.photoUrl != null && product.photoUrl!.isNotEmpty
+                        ? Border.all(color: Colors.grey[300]!)
+                        : null,
                   ),
-                  child: Icon(
-                    Icons.medication,
-                    color: AppColors.primaryColor,
-                    size: 28,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: product.photoUrl != null && product.photoUrl!.isNotEmpty
+                        ? Image.network(
+                            product.photoUrl!,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.medication,
+                                color: AppColors.primaryColor,
+                                size: 40,
+                              );
+                            },
+                          )
+                        : Icon(
+                            Icons.medication,
+                            color: AppColors.primaryColor,
+                            size: 40,
+                          ),
                   ),
                 ),
                 const SizedBox(width: AppDimensions.paddingMedium),

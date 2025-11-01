@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 import '../../models/stock_model.dart';
 import '../../models/pharmacy_model.dart';
 import '../../utils/constants.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/image_upload_widget.dart';
+import '../../services/cloudinary_service.dart';
 
 class StockManagementScreen extends StatefulWidget {
   final PharmacyModel pharmacy;
@@ -267,85 +271,128 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
         onTap: () => _showStockDetails(stock),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      stock.medicamentName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+              // Photo du produit
+              if (stock.photoUrl != null && stock.photoUrl!.isNotEmpty)
+                Container(
+                  width: 80,
+                  height: 80,
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      stock.photoUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.medication, size: 40, color: Colors.grey);
+                      },
                     ),
                   ),
-                  _buildStockStatusBadge(stock),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.category, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    stock.category,
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(Icons.business, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    stock.supplier,
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quantité: ${stock.quantity}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: stock.isLowStock ? Colors.red : Colors.black,
-                          fontWeight: stock.isLowStock ? FontWeight.bold : FontWeight.normal,
+                ),
+              // Informations du produit
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            stock.medicamentName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Prix: ${stock.price.toStringAsFixed(0)} ${AppStrings.currency}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Expire: ${_formatDate(stock.expirationDate)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: stock.isExpiringSoon ? Colors.red : Colors.grey[600],
-                          fontWeight: stock.isExpiringSoon ? FontWeight.bold : FontWeight.normal,
+                        _buildStockStatusBadge(stock),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.category, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          stock.category,
+                          style: TextStyle(color: Colors.grey[600]),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Code: ${stock.medicamentCode}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                        const SizedBox(width: 16),
+                        Icon(Icons.business, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            stock.supplier,
+                            style: TextStyle(color: Colors.grey[600]),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Quantité: ${stock.quantity}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: stock.isLowStock ? Colors.red : Colors.black,
+                                fontWeight: stock.isLowStock ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            Text(
+                              'Prix: ${stock.price.toStringAsFixed(0)} ${AppStrings.currency}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Expire: ${_formatDate(stock.expirationDate)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: stock.isExpiringSoon ? Colors.red : Colors.grey[600],
+                                fontWeight: stock.isExpiringSoon ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Code: ${stock.medicamentCode}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -401,6 +448,29 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Photo du produit
+              if (stock.photoUrl != null && stock.photoUrl!.isNotEmpty)
+                Center(
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        stock.photoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.medication, size: 60, color: Colors.grey);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
               _buildDetailRow('Code', stock.medicamentCode),
               _buildDetailRow('Catégorie', stock.category),
               _buildDetailRow('Description', stock.description),
@@ -470,6 +540,11 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
     final supplierController = TextEditingController(text: stock?.supplier ?? '');
     final batchController = TextEditingController(text: stock?.batchNumber ?? '');
     DateTime selectedDate = stock?.expirationDate ?? DateTime.now().add(const Duration(days: 365));
+
+    // Variables pour l'upload d'image
+    XFile? selectedImage;
+    Uint8List? webImage;
+    String? existingPhotoUrl = stock?.photoUrl;
 
     showDialog(
       context: context,
@@ -569,6 +644,18 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
                   }
                 },
               ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              ImageUploadWidget(
+                title: 'Photo du produit (optionnelle)',
+                currentImageUrl: existingPhotoUrl,
+                height: 200,
+                onImageSelected: (XFile file, Uint8List? bytes) {
+                  selectedImage = file;
+                  webImage = bytes;
+                },
+              ),
             ],
           ),
         ),
@@ -590,6 +677,9 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
               supplierController.text,
               batchController.text,
               selectedDate,
+              selectedImage,
+              webImage,
+              existingPhotoUrl,
             ),
             child: Text(isEditing ? 'Modifier' : 'Ajouter'),
           ),
@@ -610,6 +700,9 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
     String supplier,
     String batchNumber,
     DateTime expirationDate,
+    XFile? selectedImage,
+    Uint8List? webImage,
+    String? existingPhotoUrl,
   ) async {
     if (name.isEmpty || code.isEmpty) {
       _showErrorSnackBar('Veuillez remplir tous les champs obligatoires');
@@ -617,6 +710,28 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
     }
 
     try {
+      String? photoUrl = existingPhotoUrl;
+
+      // Upload de l'image vers Cloudinary si une nouvelle image est sélectionnée
+      if (selectedImage != null) {
+        final cloudinaryService = CloudinaryService();
+        final tempId = stock?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+        try {
+          photoUrl = await cloudinaryService.uploadMedicamentPhoto(
+            file: selectedImage,
+            pharmacyId: widget.pharmacy.id,
+            medicamentId: tempId,
+            webImage: webImage,
+          );
+          debugPrint('✅ Photo produit uploadée: $photoUrl');
+        } catch (e) {
+          debugPrint('❌ Erreur upload photo: $e');
+          _showErrorSnackBar('Erreur lors de l\'upload de la photo. Le produit sera créé sans photo.');
+          photoUrl = null;
+        }
+      }
+
       final now = DateTime.now();
       final stockData = StockModel(
         id: stock?.id ?? '',
@@ -634,6 +749,7 @@ class _StockManagementScreenState extends State<StockManagementScreen> {
         createdAt: stock?.createdAt ?? now,
         updatedAt: now,
         isActive: true,
+        photoUrl: photoUrl,
       );
 
       if (stock == null) {
