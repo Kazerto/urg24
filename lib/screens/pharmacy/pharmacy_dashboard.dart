@@ -6,6 +6,7 @@ import '../../models/order_model.dart';
 import '../../models/stock_model.dart';
 import '../../utils/constants.dart';
 import 'pharmacy_order_management_screen.dart';
+import 'pharmacy_prescriptions_screen.dart';
 
 class PharmacyDashboard extends StatefulWidget {
   final PharmacyModel pharmacy;
@@ -446,7 +447,7 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
               Icons.inventory,
               Colors.blue,
               () => Navigator.pushNamed(
-                context, 
+                context,
                 '/pharmacy/stock',
                 arguments: {'pharmacy': widget.pharmacy}
               ),
@@ -463,11 +464,22 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
               ),
             ),
             _buildQuickActionCard(
+              'Ordonnances',
+              Icons.description,
+              Colors.orange,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PharmacyPrescriptionsScreen(pharmacy: widget.pharmacy),
+                ),
+              ),
+            ),
+            _buildQuickActionCard(
               'Partenaires',
               Icons.group,
               Colors.purple,
               () => Navigator.pushNamed(
-                context, 
+                context,
                 '/pharmacy/partners',
                 arguments: {'pharmacy': widget.pharmacy}
               ),

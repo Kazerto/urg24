@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../models/pharmacy_model.dart';
 import '../../models/prescription_model.dart';
 import '../../utils/constants.dart';
-import 'prescription_scanner_screen.dart';
 
-class MyPrescriptionsScreen extends StatefulWidget {
-  const MyPrescriptionsScreen({super.key});
+class PharmacyPrescriptionsScreen extends StatefulWidget {
+  final PharmacyModel pharmacy;
+
+  const PharmacyPrescriptionsScreen({
+    super.key,
+    required this.pharmacy,
+  });
 
   @override
-  State<MyPrescriptionsScreen> createState() => _MyPrescriptionsScreenState();
+  State<PharmacyPrescriptionsScreen> createState() => _PharmacyPrescriptionsScreenState();
 }
 
-class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
+class _PharmacyPrescriptionsScreenState extends State<PharmacyPrescriptionsScreen> {
   List<PrescriptionModel> _prescriptions = [];
   bool _isLoading = true;
+  String _selectedFilter = 'mes_ordonnances'; // 'mes_ordonnances' ou 'toutes'
+  String _statusFilter = 'tous'; // 'tous', 'uploaded', 'used_in_order'
 
   @override
   void initState() {
@@ -26,22 +32,25 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() => _isLoading = false);
-        return;
+      Query query = FirebaseFirestore.instance.collection('prescriptions');
+
+      // Filtrer par pharmacie ou tout voir
+      if (_selectedFilter == 'mes_ordonnances') {
+        query = query.where('pharmacyId', isEqualTo: widget.pharmacy.id);
       }
 
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('prescriptions')
-          .where('userId', isEqualTo: user.uid)
-          .get();
+      // Filtrer par statut si nécessaire
+      if (_statusFilter != 'tous') {
+        query = query.where('status', isEqualTo: _statusFilter);
+      }
 
-      // Trier côté client pour éviter l'index composite
+      final querySnapshot = await query.get();
+
+      // Trier côté client
       final prescriptions = querySnapshot.docs
           .map((doc) => PrescriptionModel.fromFirestore(doc))
           .toList()
-        ..sort((a, b) => b.uploadedAt.compareTo(a.uploadedAt)); // Tri décroissant
+        ..sort((a, b) => b.uploadedAt.compareTo(a.uploadedAt));
 
       setState(() {
         _prescriptions = prescriptions;
@@ -57,40 +66,107 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mes ordonnances'),
+        title: const Text('Ordonnances reçues'),
         backgroundColor: AppColors.primaryColor,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadPrescriptions,
+          ),
+        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _prescriptions.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadPrescriptions,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(AppDimensions.paddingMedium),
-                    itemCount: _prescriptions.length,
-                    itemBuilder: (context, index) {
-                      return _buildPrescriptionCard(_prescriptions[index]);
-                    },
-                  ),
+      body: Column(
+        children: [
+          _buildFilters(),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _prescriptions.isEmpty
+                    ? _buildEmptyState()
+                    : RefreshIndicator(
+                        onRefresh: _loadPrescriptions,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+                          itemCount: _prescriptions.length,
+                          itemBuilder: (context, index) {
+                            return _buildPrescriptionCard(_prescriptions[index]);
+                          },
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilters() {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+      color: Colors.grey[50],
+      child: Column(
+        children: [
+          // Filtre mes ordonnances / toutes
+          Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'mes_ordonnances',
+                      label: Text('Mes ordonnances'),
+                      icon: Icon(Icons.local_pharmacy, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: 'toutes',
+                      label: Text('Toutes'),
+                      icon: Icon(Icons.visibility, size: 16),
+                    ),
+                  ],
+                  selected: {_selectedFilter},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    setState(() {
+                      _selectedFilter = newSelection.first;
+                    });
+                    _loadPrescriptions();
+                  },
                 ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PrescriptionScannerScreen(),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.paddingSmall),
+          // Filtre par statut
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _buildStatusFilterChip('Tous', 'tous'),
+                _buildStatusFilterChip('Disponibles', 'uploaded'),
+                _buildStatusFilterChip('Utilisées', 'used_in_order'),
+              ],
             ),
-          );
-          _loadPrescriptions(); // Recharger après scan
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusFilterChip(String label, String value) {
+    final isSelected = _statusFilter == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            _statusFilter = value;
+          });
+          _loadPrescriptions();
         },
-        backgroundColor: AppColors.primaryColor,
-        icon: const Icon(Icons.camera_alt, color: Colors.white),
-        label: const Text(
-          'Scanner',
-          style: TextStyle(color: Colors.white),
-        ),
+        selectedColor: AppColors.primaryColor.withOpacity(0.3),
+        checkmarkColor: AppColors.primaryColor,
       ),
     );
   }
@@ -116,35 +192,13 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
           ),
           const SizedBox(height: AppDimensions.paddingSmall),
           Text(
-            'Scannez votre première ordonnance\npour commander vos médicaments',
+            _selectedFilter == 'mes_ordonnances'
+                ? 'Aucune ordonnance n\'a été envoyée à votre pharmacie'
+                : 'Aucune ordonnance dans le système',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],
-            ),
-          ),
-          const SizedBox(height: AppDimensions.paddingLarge),
-          ElevatedButton.icon(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PrescriptionScannerScreen(),
-                ),
-              );
-              _loadPrescriptions();
-            },
-            icon: const Icon(Icons.camera_alt, color: Colors.white),
-            label: const Text(
-              'Scanner une ordonnance',
-              style: TextStyle(color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryColor,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
-              ),
             ),
           ),
         ],
@@ -153,6 +207,8 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
   }
 
   Widget _buildPrescriptionCard(PrescriptionModel prescription) {
+    final isForThisPharmacy = prescription.pharmacyId == widget.pharmacy.id;
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppDimensions.paddingMedium),
       elevation: 2,
@@ -168,7 +224,12 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
                 height: 80,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(
+                    color: isForThisPharmacy
+                        ? AppColors.primaryColor
+                        : Colors.grey[300]!,
+                    width: isForThisPharmacy ? 2 : 1,
+                  ),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
@@ -200,33 +261,39 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.local_pharmacy,
-                          size: 14,
-                          color: AppColors.primaryColor,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            prescription.pharmacyName,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.primaryColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    if (_selectedFilter == 'toutes')
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.local_pharmacy,
+                            size: 14,
+                            color: isForThisPharmacy
+                                ? AppColors.primaryColor
+                                : Colors.grey[600],
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              prescription.pharmacyName,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isForThisPharmacy
+                                    ? AppColors.primaryColor
+                                    : Colors.grey[600],
+                                fontWeight: isForThisPharmacy
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (_selectedFilter == 'toutes')
+                      const SizedBox(height: 4),
                     Text(
                       'Uploadée à ${_formatTime(prescription.uploadedAt)}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 14,
                         color: Colors.grey[600],
                       ),
                     ),
@@ -304,6 +371,8 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
             ),
             Flexible(
               child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
                 child: Image.network(
                   prescription.imageUrl,
                   fit: BoxFit.contain,
@@ -336,7 +405,7 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
                       const Icon(Icons.local_pharmacy, size: 16, color: AppColors.primaryColor),
                       const SizedBox(width: 4),
                       Text(
-                        'Envoyée à: ${prescription.pharmacyName}',
+                        'Pharmacie: ${prescription.pharmacyName}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primaryColor,
@@ -354,7 +423,7 @@ class _MyPrescriptionsScreenState extends State<MyPrescriptionsScreen> {
                   ),
                   const SizedBox(height: 8),
                   _buildStatusBadge(prescription),
-                  if (prescription.isUsed) ...[
+                  if (prescription.isUsed) ...  [
                     const SizedBox(height: 8),
                     Text(
                       'Utilisée dans la commande ${prescription.usedInOrderId}',

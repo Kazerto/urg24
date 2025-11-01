@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/constants.dart';
 import '../../services/cloudinary_service.dart';
+import '../../models/pharmacy_model.dart';
 
 class PrescriptionScannerScreen extends StatefulWidget {
   const PrescriptionScannerScreen({super.key});
@@ -23,6 +24,38 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
   bool _isLoading = false;
   double _uploadProgress = 0.0;
   String? _uploadedUrl;
+
+  // Sélection de pharmacie
+  PharmacyModel? _selectedPharmacy;
+  List<PharmacyModel> _pharmacies = [];
+  bool _isLoadingPharmacies = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPharmacies();
+  }
+
+  Future<void> _loadPharmacies() async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('pharmacies')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final pharmacies = querySnapshot.docs
+          .map((doc) => PharmacyModel.fromFirestore(doc))
+          .toList();
+
+      setState(() {
+        _pharmacies = pharmacies;
+        _isLoadingPharmacies = false;
+      });
+    } catch (e) {
+      debugPrint('Erreur chargement pharmacies: $e');
+      setState(() => _isLoadingPharmacies = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +77,145 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildPharmacySelection(),
+            const SizedBox(height: AppDimensions.paddingLarge),
             _buildInstructionSection(),
             const SizedBox(height: AppDimensions.paddingLarge),
             _buildImageSection(),
             const SizedBox(height: AppDimensions.paddingLarge),
             _buildActionButtons(),
             if (_isLoading) _buildLoadingSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPharmacySelection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.paddingLarge),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.local_pharmacy,
+                  color: AppColors.primaryColor,
+                  size: 24,
+                ),
+                const SizedBox(width: AppDimensions.paddingSmall),
+                const Text(
+                  'Sélectionner une pharmacie',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'Requis',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.paddingSmall),
+            const Text(
+              'Choisissez la pharmacie à qui envoyer votre ordonnance',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.paddingMedium),
+            if (_isLoadingPharmacies)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (_pharmacies.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Aucune pharmacie disponible',
+                        style: TextStyle(color: Colors.orange),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: _selectedPharmacy != null
+                        ? AppColors.primaryColor
+                        : Colors.grey[300]!
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<PharmacyModel>(
+                    isExpanded: true,
+                    value: _selectedPharmacy,
+                    hint: const Text('Choisir une pharmacie'),
+                    items: _pharmacies.map((pharmacy) {
+                      return DropdownMenuItem<PharmacyModel>(
+                        value: pharmacy,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              pharmacy.pharmacyName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              pharmacy.address,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (PharmacyModel? value) {
+                      setState(() {
+                        _selectedPharmacy = value;
+                      });
+                    },
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -65,7 +231,7 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
           children: [
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.info_outline,
                   color: Colors.blue,
                   size: 24,
@@ -350,6 +516,16 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
   }
 
   Future<void> _processImage() async {
+    if (_selectedPharmacy == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez sélectionner une pharmacie d\'abord'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     if (_image == null && _webImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -395,13 +571,15 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
       // Sauvegarder l'ordonnance dans Firestore
       await FirebaseFirestore.instance.collection('prescriptions').add({
         'userId': user.uid,
+        'pharmacyId': _selectedPharmacy!.id,
+        'pharmacyName': _selectedPharmacy!.pharmacyName,
         'imageUrl': url,
         'uploadedAt': FieldValue.serverTimestamp(),
         'status': 'uploaded', // uploaded, used_in_order
         'usedInOrderId': null,
       });
 
-      debugPrint('✅ Ordonnance sauvegardée dans Firestore');
+      debugPrint('✅ Ordonnance envoyée à ${_selectedPharmacy!.pharmacyName}');
 
       if (mounted) {
         _showUploadResult();
@@ -441,6 +619,38 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
             ),
             const SizedBox(height: AppDimensions.paddingMedium),
             const Text('Votre ordonnance a été envoyée avec succès !'),
+            const SizedBox(height: AppDimensions.paddingSmall),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.local_pharmacy, color: AppColors.primaryColor, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Envoyée à:',
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                        Text(
+                          _selectedPharmacy!.pharmacyName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: AppDimensions.paddingMedium),
             Container(
               padding: const EdgeInsets.all(AppDimensions.paddingMedium),
@@ -448,17 +658,17 @@ class _PrescriptionScannerScreenState extends State<PrescriptionScannerScreen> {
                 color: Colors.blue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Prochaines étapes:',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: AppDimensions.paddingSmall),
-                  Text('• Une pharmacie partenaire va analyser votre ordonnance'),
-                  Text('• Vous recevrez une notification sous 30 minutes'),
-                  Text('• Les médicaments disponibles vous seront proposés'),
+                  const SizedBox(height: AppDimensions.paddingSmall),
+                  Text('• ${_selectedPharmacy!.pharmacyName} va analyser votre ordonnance'),
+                  const Text('• Vous recevrez une notification sous 30 minutes'),
+                  const Text('• Les médicaments disponibles vous seront proposés'),
                 ],
               ),
             ),
